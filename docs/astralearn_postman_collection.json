@@ -1,0 +1,88 @@
+{
+  "info": {
+    "_postman_id": "a5e8211b-c124-4f0e-b9b4-0c6efae78cc5",
+    "name": "AstraLearn AI API Collection",
+    "description": "Pre-configured test suite for AstraLearn AI HTTP routes and WebSocket events.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "HTTP Endpoints",
+      "item": [
+        {
+          "name": "1. Start Curriculum Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const responseJson = pm.response.json();",
+                  "if (responseJson.success && responseJson.data) {",
+                  "    pm.collectionVariables.set(\"goalId\", responseJson.data.goalId);",
+                  "    console.log(\"Saved goalId to Collection Variables:\", responseJson.data.goalId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@example.com\",\n  \"goalText\": \"I want to learn Generative AI and build a RAG product recommendation system.\",\n  \"category\": \"job_project\",\n  \"durationDays\": 21\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/curriculum/start",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "curriculum",
+                "start"
+              ]
+            },
+            "description": "Initializes a learning goal session, creates User/Profile/Curriculum records, and saves the goalId in Collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get Curriculum Roadmap",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/curriculum/{{goalId}}",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8000",
+              "path": [
+                "curriculum",
+                "{{goalId}}"
+              ]
+            },
+            "description": "Retrieves the full curriculum roadmap (phases, modules, lessons) for the given Goal ID."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "goalId",
+      "value": "PASTE_GOAL_ID_HERE",
+      "type": "string"
+    }
+  ]
+}
