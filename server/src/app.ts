@@ -1,6 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
-import { interviewRouter } from "./routes/interview.routes.js";
+import { curriculumRouter } from "./modules/curriculum/curriculum.routes.js";
 import { logger } from "./utils/logger.js";
 
 /**
@@ -45,7 +45,7 @@ export function createApp(): express.Application {
   });
 
   // ── Feature Routes ────────────────────────────────────────────────────────
-  app.use("/interview", interviewRouter);
+  app.use("/curriculum", curriculumRouter);
 
   // ── 404 Handler ───────────────────────────────────────────────────────────
   app.use((_req: Request, res: Response) => {

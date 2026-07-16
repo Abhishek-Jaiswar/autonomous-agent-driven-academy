@@ -1,9 +1,9 @@
-import { GoogleGenAIEmbeddings } from "@langchain/google-genai";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { env } from "../config/env.js";
 import { logger } from "./logger.js";
 
 // Initialize Google GenAI Embeddings client (free-tier text-embedding-004 model)
-export const embeddingsClient = new GoogleGenAIEmbeddings({
+export const embeddingsClient = new GoogleGenerativeAIEmbeddings({
   apiKey: env.GOOGLE_API_KEY,
   modelName: "text-embedding-004", // 768 dimensions
 });

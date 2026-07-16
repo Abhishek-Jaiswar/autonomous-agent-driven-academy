@@ -28,12 +28,14 @@ model Goal {
 }
 
 model Profile {
-  id            String   @id @default(uuid())
-  goalId        String   @unique
-  goal          Goal     @relation(fields: [goalId], references: [id])
-  skillBaseline Json // Baseline skill levels
-  learningStyle String // visual, practical, text
-  weakAreas     String[]
+  id                 String   @id @default(uuid())
+  goalId             String   @unique
+  goal               Goal     @relation(fields: [goalId], references: [id])
+  skillBaseline      Json     // Baseline skill levels
+  learningStyle      String   // visual, practical, text
+  weakAreas          String[]
+  counselorQuestions String[]
+  interviewChat      Json     @default("[]")
 }
 
 model Curriculum {

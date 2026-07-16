@@ -1,120 +1,88 @@
 import { Annotation } from "@langchain/langgraph";
-import type {
-  ConversationMessage,
-  CandidateProfile,
-  SkillScore,
-} from "../types/interview.types.js";
 
-// ─── Interview State (LangGraph Annotation) ────────────────────────────────────
-//
-// This is the HEART of the interview system. Every node reads from and writes
-// to this single state object. LangGraph merges partial updates using the
-// reducer defined for each field.
-//
-// Reducer patterns used here:
-//   ┌─────────────────────┬─────────────────────────────────────────────────┐
-//   │ Reducer             │ When to use                                     │
-//   ├─────────────────────┼─────────────────────────────────────────────────┤
-//   │ last-write-wins     │ Scalar fields (string, number, status)          │
-//   │ append              │ conversation — new messages added each turn     │
-//   │ deduplicated union  │ coveredTopics — never repeat a topic            │
-//   │ last-write-wins     │ pendingTopics — planner rewrites the full list  │
-//   │ shallow merge       │ skillScores — new skill scores overwrite old    │
-//   └─────────────────────┴─────────────────────────────────────────────────┘
-//
-// State must remain fully serializable — no functions, no class instances.
-// This ensures it can be stored in Redis / PostgreSQL in later phases.
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: string;
+}
 
-export const InterviewStateAnnotation = Annotation.Root({
-  // ── Session Identity ──────────────────────────────────────────────────────
-  interviewId: Annotation<string>({
+export interface LearnerProfileData {
+  goalId: string;
+  category: string;
+  durationDays: number;
+  goalText: string;
+  skillBaseline: Record<string, string>; // e.g. { Python: "intermediate", GenAI: "beginner" }
+  learningStyle: "visual" | "practical" | "text" | "balanced";
+  weakAreas: string[];
+}
+
+export const SchoolStateAnnotation = Annotation.Root({
+  // Core Identifiers
+  goalId: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
+  
+  goalText: Annotation<string>({
     reducer: (_, update) => update,
     default: () => "",
   }),
 
-  role: Annotation<string>({
+  category: Annotation<string>({
     reducer: (_, update) => update,
     default: () => "",
   }),
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
-  status: Annotation<"idle" | "running" | "completed">({
-    reducer: (_, update) => update,
-    default: () => "idle" as const,
-  }),
-
-  startedAt: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-
-  completedAt: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-
-  // ── Candidate Profile (Phase 3) ───────────────────────────────────────────
-  // The profile extraction node will populate this from the candidate's intro.
-  candidateProfile: Annotation<CandidateProfile>({
-    reducer: (_, update) => update,
-    default: () => ({
-      skills: [],
-      projects: [],
-      technologies: [],
-      claims: [],
-    }),
-  }),
-
-  // ── Current Interaction ────────────────────────────────────────────────────
-  currentQuestion: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-
-  lastAnswer: Annotation<string>({
-    reducer: (_, update) => update,
-    default: () => "",
-  }),
-
-  questionCount: Annotation<number>({
+  durationDays: Annotation<number>({
     reducer: (_, update) => update,
     default: () => 0,
   }),
 
-  // ── Conversation History ───────────────────────────────────────────────────
-  // Append-only: nodes return NEW messages to add, not the full array.
-  // The reducer handles combining them.
-  conversation: Annotation<ConversationMessage[]>({
+  // Counselor Q&A State
+  counselorQuestions: Annotation<string[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+  
+  currentQuestionIndex: Annotation<number>({
+    reducer: (current, update) => {
+      // If we receive an explicit index set, use it; otherwise increment
+      if (typeof update === "number") return update;
+      return current + 1;
+    },
+    default: () => 0,
+  }),
+
+  lastUserResponse: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
+
+  // Conversation history
+  conversation: Annotation<ChatMessage[]>({
     reducer: (current, update) => [...current, ...update],
     default: () => [],
   }),
 
-  // ── Topic Management (Phase 6) ─────────────────────────────────────────────
-  coveredTopics: Annotation<string[]>({
-    reducer: (current, update) => [...new Set([...current, ...update])],
-    default: () => [],
-  }),
-
-  pendingTopics: Annotation<string[]>({
+  // Compiled profile
+  profile: Annotation<LearnerProfileData>({
     reducer: (_, update) => update,
-    default: () => [],
+    default: () => ({
+      goalId: "",
+      category: "",
+      durationDays: 0,
+      goalText: "",
+      skillBaseline: {},
+      learningStyle: "balanced",
+      weakAreas: [],
+    }),
   }),
-
-  // ── Skill Evaluation (Phase 5) ─────────────────────────────────────────────
-  // Shallow merge: new skill scores overwrite old ones for the same skill key.
-  skillScores: Annotation<Record<string, SkillScore>>({
-    reducer: (current, update) => ({ ...current, ...update }),
-    default: () => ({}),
-  }),
-
-  // ── Adaptive Controls (Phase 6) ───────────────────────────────────────────
-  difficultyLevel: Annotation<"easy" | "medium" | "hard">({
+  
+  isComplete: Annotation<boolean>({
     reducer: (_, update) => update,
-    default: () => "easy" as const,
+    default: () => false,
   }),
 });
 
-// ─── Exported Types ───────────────────────────────────────────────────────────
-
-/** Full interview state — use this type everywhere in nodes and services */
-export type InterviewState = typeof InterviewStateAnnotation.State;
+export type SchoolState = typeof SchoolStateAnnotation.State;
+export type SchoolStateInput = Partial<typeof SchoolStateAnnotation.State>;

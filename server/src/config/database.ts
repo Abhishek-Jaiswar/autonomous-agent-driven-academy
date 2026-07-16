@@ -1,12 +1,12 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, PrismaClient } from "../generated/prisma/client/client.js";
 import { env } from "./env.js";
 import { logger } from "../utils/logger.js";
 
 const connectionString = env.DATABASE_URL;
 const adapter = new PrismaPg({ connectionString });
 
-const prisma = new PrismaClient({
+export const prisma = new PrismaClient({
   adapter,
   log: [
     {
@@ -59,3 +59,5 @@ export async function testConnection() {
 process.on("beforeExit", async () => {
   await prisma.$disconnect();
 });
+
+export { prisma as db };
