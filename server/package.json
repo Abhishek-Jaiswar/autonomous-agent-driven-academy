@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts",
+    "build": "prisma generate && tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,14 +16,18 @@
   "license": "ISC",
   "packageManager": "pnpm@10.33.4",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",
+    "@types/eslint__js": "^9.14.0",
     "@types/express": "^5.0.6",
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "@types/socket.io": "^3.0.2",
+    "eslint": "^10.7.0",
     "prisma": "^7.8.0",
     "tsx": "^4.23.1",
-    "typescript": "^7.0.2"
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.64.0"
   },
   "dependencies": {
     "@langchain/core": "^1.2.3",
