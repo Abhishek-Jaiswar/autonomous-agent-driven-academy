@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+import { ReduxProvider } from "@/lib/redux/provider";
+
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Interview Platform — Adaptive Technical Interviewer",
+  title: "AstraLearn AI — Autonomous Agent-Driven Academy",
   description:
-    "An adaptive AI-powered technical interview platform that evaluates candidates dynamically, generating intelligent questions based on their responses.",
+    "An adaptive, agent-driven academy that builds personalized syllabus maps, verifies resource trust, and mentors students through visual explanations.",
 };
 
 export default function RootLayout({
@@ -26,9 +30,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      className={cn("h-full dark", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
     >
-      <body className="min-h-full flex flex-col antialiased">{children}</body>
+      <body className="min-h-full flex flex-col antialiased">
+        <ReduxProvider>{children}</ReduxProvider>
+      </body>
     </html>
   );
 }
