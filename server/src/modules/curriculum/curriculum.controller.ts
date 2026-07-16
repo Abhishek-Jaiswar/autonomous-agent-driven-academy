@@ -2,10 +2,10 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { curriculumService } from "./curriculum.service.js";
 import { logger } from "../../utils/logger.js";
+import type { AuthenticatedRequest } from "../auth/auth.middleware.js";
 
 // Input validation schema for starting a curriculum session
 const startCurriculumSchema = z.object({
-  email: z.string().email(),
   goalText: z.string().min(10),
   category: z.enum(["exam_prep", "job_project", "school_subject"]),
   durationDays: z.number().int().min(1).max(365),
@@ -15,7 +15,13 @@ const startCurriculumSchema = z.object({
  * Handles the registration of a new learning goal and setups placeholders.
  */
 export async function startCurriculumSession(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
   try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
     const result = startCurriculumSchema.safeParse(req.body);
     
     if (!result.success) {
@@ -30,10 +36,11 @@ export async function startCurriculumSession(req: Request, res: Response) {
       return;
     }
 
-    const { email, goalText, category, durationDays } = result.data;
+    const { goalText, category, durationDays } = result.data;
+    const { id: userId } = authReq.user;
 
     // Delegate to service
-    const session = await curriculumService.startSession(email, goalText, category, durationDays);
+    const session = await curriculumService.startSession(userId, goalText, category, durationDays);
 
     res.status(201).json({
       success: true,

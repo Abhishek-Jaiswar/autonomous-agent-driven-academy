@@ -8,21 +8,14 @@ export const curriculumService = {
   /**
    * Initializes a learning session by creating User, Goal, Profile, and Curriculum records inside a transaction.
    */
-  async startSession(email: string, goalText: string, category: string, durationDays: number) {
-    logger.info(`[CurriculumService] Initializing session for user ${email}`);
+  async startSession(userId: string, goalText: string, category: string, durationDays: number) {
+    logger.info(`[CurriculumService] Initializing session for userId ${userId}`);
 
     return await db.$transaction(async (tx: any) => {
-      // 1. Upsert User
-      const user = await tx.user.upsert({
-        where: { email },
-        update: {},
-        create: { email },
-      });
-
-      // 2. Create Goal
+      // 1. Create Goal
       const goal = await tx.goal.create({
         data: {
-          userId: user.id,
+          userId,
           goalText,
           category,
           durationDays,

@@ -6,6 +6,7 @@ import { logger } from "./utils/logger.js";
 import { initSocketServer } from "./config/socket.js";
 import { testConnection as testDbConnection } from "./config/database.js";
 import { testPineconeConnection } from "./config/pinecone.js";
+import "./workers/agent.worker.js";
 
 /**
  * Server Entry Point

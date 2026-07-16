@@ -1,6 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import { curriculumRouter } from "./modules/curriculum/curriculum.routes.js";
+import { authRouter } from "./modules/auth/auth.routes.js";
 import { logger } from "./utils/logger.js";
 
 /**
@@ -45,6 +46,7 @@ export function createApp(): express.Application {
   });
 
   // ── Feature Routes ────────────────────────────────────────────────────────
+  app.use("/auth", authRouter);
   app.use("/curriculum", curriculumRouter);
 
   // ── 404 Handler ───────────────────────────────────────────────────────────

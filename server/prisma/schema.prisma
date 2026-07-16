@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  goals     Goal[]
-  createdAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  goals        Goal[]
+  createdAt    DateTime @default(now())
 }
 
 model Goal {
@@ -24,6 +25,7 @@ model Goal {
   durationDays Int
   profile      Profile?
   curriculum   Curriculum?
+  resources    Resource[]
   createdAt    DateTime    @default(now())
 }
 
@@ -80,8 +82,10 @@ model Lesson {
 
 model Resource {
   id         String  @id @default(uuid())
-  lessonId   String
-  lesson     Lesson  @relation(fields: [lessonId], references: [id])
+  goalId     String
+  goal       Goal    @relation(fields: [goalId], references: [id])
+  lessonId   String?
+  lesson     Lesson? @relation(fields: [lessonId], references: [id])
   title      String
   url        String?
   type       String // doc, lecture, book, video

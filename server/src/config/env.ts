@@ -30,6 +30,9 @@ const envSchema = z.object({
   // ── Pinecone Vector DB ───────────────────────────────────────────────────
   PINECONE_API_KEY: z.string().min(1, "PINECONE_API_KEY is required"),
   PINECONE_INDEX: z.string().default("astralearn"),
+
+  // ── Authentication ───────────────────────────────────────────────────────
+  JWT_SECRET: z.string().default("default_super_secret_key_change_me_in_production"),
 });
 
 // ─── Preprocess & Validate ───────────────────────────────────────────────────
