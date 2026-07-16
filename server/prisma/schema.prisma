@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  goals     Goal[]
+  createdAt DateTime @default(now())
+}
+
+model Goal {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  goalText     String
+  category     String // "job_project" | "exam_prep" | "school_subject"
+  durationDays Int
+  profile      Profile?
+  curriculum   Curriculum?
+  createdAt    DateTime    @default(now())
+}
+
+model Profile {
+  id            String   @id @default(uuid())
+  goalId        String   @unique
+  goal          Goal     @relation(fields: [goalId], references: [id])
+  skillBaseline Json // Baseline skill levels
+  learningStyle String // visual, practical, text
+  weakAreas     String[]
+}
+
+model Curriculum {
+  id        String   @id @default(uuid())
+  goalId    String   @unique
+  goal      Goal     @relation(fields: [goalId], references: [id])
+  phases    Phase[]
+  createdAt DateTime @default(now())
+}
+
+model Phase {
+  id           String     @id @default(uuid())
+  curriculumId String
+  curriculum   Curriculum @relation(fields: [curriculumId], references: [id])
+  title        String
+  order        Int
+  modules      Module[]
+}
+
+model Module {
+  id      String   @id @default(uuid())
+  phaseId String
+  phase   Phase    @relation(fields: [phaseId], references: [id])
+  title   String
+  order   Int
+  lessons Lesson[]
+}
+
+model Lesson {
+  id         String     @id @default(uuid())
+  moduleId   String
+  module     Module     @relation(fields: [moduleId], references: [id])
+  title      String
+  content    String?    @db.Text
+  diagram    String?    @db.Text // Mermaid diagram code
+  order      Int
+  status     String     @default("LOCKED") // LOCKED | UNLOCKED | COMPLETED | ADAPTIVE
+  resources  Resource[]
+  activities Activity[]
+  agentLogs  AgentLog[]
+}
+
+model Resource {
+  id         String  @id @default(uuid())
+  lessonId   String
+  lesson     Lesson  @relation(fields: [lessonId], references: [id])
+  title      String
+  url        String?
+  type       String // doc, lecture, book, video
+  trustScore Int
+  trustLabel String // Verified, Strong, Caution, Rejected
+  reason     String
+  status     String // INCLUDED | REJECTED
+}
+
+model Activity {
+  id       String    @id @default(uuid())
+  lessonId String
+  lesson   Lesson    @relation(fields: [lessonId], references: [id])
+  type     String // QUIZ | PRACTICAL
+  payload  Json // Questions/task specifications
+  attempts Attempt[]
+}
+
+model Attempt {
+  id         String   @id @default(uuid())
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id])
+  submission Json
+  score      Int
+  feedback   Json // Evaluator feedback (strengths, weak areas)
+  createdAt  DateTime @default(now())
+}
+
+model AgentLog {
+  id        String   @id @default(uuid())
+  lessonId  String?
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id])
+  agentName String // Counselor, Librarian, Examiner, etc.
+  message   String
+  level     String // INFO | WARNING
+  createdAt DateTime @default(now())
+}
