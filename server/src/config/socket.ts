@@ -46,19 +46,23 @@ export function initSocketServer(httpServer: HttpServer): Server {
         const profile = goal.profile;
 
         // If interview has already started, resume or push current question
-        if (profile.counselorQuestions.length > 0) {
+        if ((profile.interviewChat as any[]).length > 0) {
           const chat = profile.interviewChat as any[];
           const lastMsg = chat[chat.length - 1];
           
           socket.emit("interview-question", {
             question: lastMsg.role === "assistant" ? lastMsg.content : "Resume interview...",
-            questionIndex: Math.floor(chat.length / 2),
+            questionIndex: chat.filter((msg) => msg.role === "user").length,
             totalQuestions: profile.counselorQuestions.length,
+            currentStage: profile.counselorStage,
+            confidence: profile.counselorConfidence,
+            extractedSignals: profile.counselorSignals,
+            quickReplies: profile.counselorQuickReplies,
           });
           return;
         }
 
-        // Trigger dynamic Counselor Graph (Turn 0: Generate Qs)
+        // Trigger dynamic Counselor Graph (Turn 0: first diagnostic question)
         const finalState = await runSchoolGraph({
           goalId,
           goalText: goal.goalText,
@@ -69,11 +73,17 @@ export function initSocketServer(httpServer: HttpServer): Server {
           isComplete: false,
         });
 
-        // Save generated questions & initial assistant message to DB
-        await profileService.initializeCounselorQuestions(
+        // Save staged counselor state to DB
+        await profileService.initializeCounselorState(
           goalId,
           finalState.counselorQuestions,
-          finalState.conversation
+          finalState.conversation,
+          finalState.counselorStage,
+          finalState.counselorStageLabel,
+          finalState.counselorConfidence,
+          finalState.counselorSignals,
+          finalState.counselorQuickReplies,
+          finalState.completionReason
         );
 
         // Emit first question to the room
@@ -81,6 +91,10 @@ export function initSocketServer(httpServer: HttpServer): Server {
           question: finalState.conversation[0]?.content || "",
           questionIndex: 0,
           totalQuestions: finalState.counselorQuestions.length,
+          currentStage: finalState.counselorStage,
+          confidence: finalState.counselorConfidence,
+          extractedSignals: finalState.counselorSignals,
+          quickReplies: finalState.counselorQuickReplies,
         });
 
         logger.info(`[Socket] Dispatched first dynamic question for goalId: ${goalId}`);
@@ -123,11 +137,25 @@ export function initSocketServer(httpServer: HttpServer): Server {
           currentQuestionIndex: currentIndex,
           lastUserResponse: answer,
           conversation: currentChat,
+          counselorStage: profile.counselorStage as any,
+          counselorConfidence: profile.counselorConfidence,
+          counselorSignals: profile.counselorSignals as any,
+          counselorQuickReplies: profile.counselorQuickReplies,
           isComplete: false,
         });
 
-        // Save updated chat logs to DB
-        await profileService.updateChatLog(goalId, finalState.conversation);
+        // Save updated staged counselor state to DB
+        await profileService.updateCounselorState(
+          goalId,
+          finalState.conversation,
+          finalState.counselorQuestions,
+          finalState.counselorStage,
+          finalState.counselorStageLabel,
+          finalState.counselorConfidence,
+          finalState.counselorSignals,
+          finalState.counselorQuickReplies,
+          finalState.completionReason
+        );
 
         // If completed, the Profiler has already triggered the next background queue task
         if (finalState.isComplete) {
@@ -142,6 +170,10 @@ export function initSocketServer(httpServer: HttpServer): Server {
           question: nextMsg?.content || "",
           questionIndex: finalState.currentQuestionIndex,
           totalQuestions: finalState.counselorQuestions.length,
+          currentStage: finalState.counselorStage,
+          confidence: finalState.counselorConfidence,
+          extractedSignals: finalState.counselorSignals,
+          quickReplies: finalState.counselorQuickReplies,
         });
 
         logger.info(`[Socket] Dispatched next question for goalId: ${goalId}`);

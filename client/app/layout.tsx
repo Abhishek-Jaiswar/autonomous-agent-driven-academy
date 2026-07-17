@@ -1,19 +1,34 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  IBM_Plex_Mono,
+  Inter,
+  Libre_Baskerville,
+  Poppins,
+} from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ReduxProvider } from "@/lib/redux/provider";
+import { ReduxProvider } from "@/store/provider";
+import NavbarFooter from "@/components/layout/navbar-footer";
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const fontSans = Poppins({
   subsets: ["latin"],
+  variable: "--font-sans",
+  weight: ["100", "200", "300", "400", "500"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const fontSerif = Libre_Baskerville({
   subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400", "500"],
+});
+
+const fontMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  weight: ["100", "200", "300", "400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -28,12 +43,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={cn("h-full dark", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
-    >
-      <body className="min-h-full flex flex-col antialiased">
-        <ReduxProvider>{children}</ReduxProvider>
+    <html lang="en">
+      <body
+        className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
+      >
+        <ReduxProvider>
+          <NavbarFooter>{children}</NavbarFooter>
+        </ReduxProvider>
       </body>
     </html>
   );

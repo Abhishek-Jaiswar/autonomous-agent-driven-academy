@@ -1,5 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { curriculumRouter } from "./modules/curriculum/curriculum.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { logger } from "./utils/logger.js";
@@ -24,7 +25,13 @@ export function createApp(): express.Application {
   const app = express();
 
   // ── Global Middleware ───────────────────────────────────────────────────────
-  app.use(cors());
+  app.use(
+    cors({
+      origin: process.env["CLIENT_URL"] || "http://localhost:3000",
+      credentials: true,
+    })
+  );
+  app.use(cookieParser());
   app.use(express.json({ limit: "10kb" }));
 
   // ── Request Logging ─────────────────────────────────────────────────────────

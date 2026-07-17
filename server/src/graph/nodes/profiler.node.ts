@@ -9,15 +9,40 @@ import { profileService } from "../../modules/profile/profile.service.js";
 
 // Zod schema for structured Gemini profiling synthesis
 const profileSynthesisSchema = z.object({
+  learnerSummary: z.string().describe("Concise internal learner summary for downstream agents"),
+  normalizedGoal: z.object({
+    title: z.string(),
+    category: z.string(),
+    targetOutcome: z.string(),
+    deliverable: z.string().optional(),
+    durationDays: z.number().int().min(1),
+  }),
   skillBaseline: z
     .record(z.string(), z.string())
     .describe("Mapping of key technologies/concepts to user experience levels"),
-  learningStyle: z
-    .enum(["visual", "practical", "text", "balanced"])
-    .describe("Synthesized learning style preference"),
+  preferences: z.object({
+    learningStyle: z
+      .enum(["visual", "practical", "text", "balanced"])
+      .describe("Synthesized learning style preference"),
+    dailyTimeCommitment: z.string().optional(),
+    assessmentMode: z.enum(["quiz", "project", "mixed"]),
+  }),
   weakAreas: z
     .array(z.string())
     .describe("Key concepts the user has identified as weak or lacks background in"),
+  risks: z.array(
+    z.object({
+      type: z.string(),
+      severity: z.enum(["low", "medium", "high"]),
+      note: z.string(),
+    })
+  ),
+  agentDirectives: z.object({
+    librarian: z.array(z.string()),
+    curriculumArchitect: z.array(z.string()),
+    teacher: z.array(z.string()),
+    examiner: z.array(z.string()),
+  }),
 });
 
 /**
@@ -48,14 +73,18 @@ export async function profilerNode(state: SchoolState): Promise<SchoolStateInput
 
   const profileData = await structuredLlm.invoke(formattedPrompt);
 
-  logger.info(`[ProfilerNode] Profile synthesized successfully. Style: ${profileData.learningStyle}, Weak Areas: ${profileData.weakAreas.join(", ")}`);
+  logger.info(`[ProfilerNode] Profile synthesized successfully. Style: ${profileData.preferences.learningStyle}, Weak Areas: ${profileData.weakAreas.join(", ")}`);
 
   // Write profile and log to database via service
   await profileService.saveProfileSynthesis(
     state.goalId,
+    profileData.learnerSummary,
+    profileData.normalizedGoal,
     profileData.skillBaseline,
-    profileData.learningStyle,
-    profileData.weakAreas
+    profileData.preferences,
+    profileData.weakAreas,
+    profileData.risks,
+    profileData.agentDirectives
   );
 
   // Emit WebSocket events to the session room
@@ -68,8 +97,12 @@ export async function profilerNode(state: SchoolState): Promise<SchoolStateInput
   emitToSession(state.goalId, "profile-ready", {
     goalId: state.goalId,
     skillBaseline: profileData.skillBaseline,
-    learningStyle: profileData.learningStyle,
+    learningStyle: profileData.preferences.learningStyle,
+    preferences: profileData.preferences,
     weakAreas: profileData.weakAreas,
+    risks: profileData.risks,
+    normalizedGoal: profileData.normalizedGoal,
+    agentDirectives: profileData.agentDirectives,
   });
 
   // Queue background curriculum generation job in Redis/BullMQ
@@ -82,9 +115,14 @@ export async function profilerNode(state: SchoolState): Promise<SchoolStateInput
       category: state.category,
       durationDays: state.durationDays,
       goalText: state.goalText,
+      learnerSummary: profileData.learnerSummary,
+      normalizedGoal: profileData.normalizedGoal,
       skillBaseline: profileData.skillBaseline as Record<string, string>,
-      learningStyle: profileData.learningStyle,
+      preferences: profileData.preferences,
+      learningStyle: profileData.preferences.learningStyle,
       weakAreas: profileData.weakAreas,
+      risks: profileData.risks,
+      agentDirectives: profileData.agentDirectives,
     },
   };
 }

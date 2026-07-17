@@ -33,9 +33,19 @@ model Profile {
   id                 String   @id @default(uuid())
   goalId             String   @unique
   goal               Goal     @relation(fields: [goalId], references: [id])
+  learnerSummary     String   @default("")
+  normalizedGoal     Json     @default("{}")
   skillBaseline      Json     // Baseline skill levels
   learningStyle      String   // visual, practical, text
+  preferences        Json     @default("{}")
   weakAreas          String[]
+  risks              Json     @default("[]")
+  agentDirectives    Json     @default("{}")
+  counselorStage     String   @default("goal_clarity")
+  counselorConfidence Int     @default(0)
+  counselorSignals   Json     @default("{}")
+  counselorQuickReplies String[]
+  completionReason   String   @default("")
   counselorQuestions String[]
   interviewChat      Json     @default("[]")
 }

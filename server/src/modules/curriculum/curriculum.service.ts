@@ -28,7 +28,29 @@ export const curriculumService = {
           goalId: goal.id,
           skillBaseline: {},
           learningStyle: "balanced",
+          learnerSummary: "",
+          normalizedGoal: {},
+          preferences: {
+            learningStyle: "balanced",
+            assessmentMode: "mixed",
+          },
           weakAreas: [],
+          risks: [],
+          agentDirectives: {
+            librarian: [],
+            curriculumArchitect: [],
+            teacher: [],
+            examiner: [],
+          },
+          counselorStage: "goal_clarity",
+          counselorConfidence: 0,
+          counselorSignals: {
+            baselineHints: [],
+            constraints: [],
+            preferences: [],
+          },
+          counselorQuickReplies: [],
+          completionReason: "",
           counselorQuestions: [],
           interviewChat: [],
         },
@@ -52,22 +74,31 @@ export const curriculumService = {
    * Fetches the complete curriculum roadmap details (phases, modules, lessons, resources, and activities).
    */
   async getDetails(goalId: string) {
-    logger.info(`[CurriculumService] Fetching curriculum details for goal [${goalId}]`);
+    logger.info(`[CurriculumService] Fetching goal details for goal [${goalId}]`);
 
-    return await db.curriculum.findUnique({
-      where: { goalId },
+    return await db.goal.findUnique({
+      where: { id: goalId },
       include: {
-        phases: {
-          orderBy: { order: "asc" },
+        resources: true,
+        profile: true,
+        curriculum: {
           include: {
-            modules: {
+            phases: {
               orderBy: { order: "asc" },
               include: {
-                lessons: {
+                modules: {
                   orderBy: { order: "asc" },
                   include: {
-                    resources: true,
-                    activities: true,
+                    lessons: {
+                      orderBy: { order: "asc" },
+                      include: {
+                        resources: true,
+                        activities: true,
+                        agentLogs: {
+                          orderBy: { createdAt: "asc" },
+                        },
+                      },
+                    },
                   },
                 },
               },

@@ -1,0 +1,130 @@
+"use client";
+
+import { useState } from "react";
+import { ArrowRight, BrainCircuit, Loader2, RotateCcw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import type { ConversationMessage } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+interface CounselorChatPanelProps {
+  conversation: ConversationMessage[];
+  quickReplies: string[];
+  stageLabel: string;
+  isSubmitting: boolean;
+  onSubmitAnswer: (answer: string) => void;
+  onReset: () => void;
+}
+
+export function CounselorChatPanel({
+  conversation,
+  quickReplies,
+  stageLabel,
+  isSubmitting,
+  onSubmitAnswer,
+  onReset,
+}: CounselorChatPanelProps) {
+  const [answer, setAnswer] = useState("");
+
+  function submit() {
+    const trimmed = answer.trim();
+    if (!trimmed || isSubmitting) return;
+    onSubmitAnswer(trimmed);
+    setAnswer("");
+  }
+
+  return (
+    <Card className="border-slate-900 bg-slate-900/40">
+      <CardHeader className="flex-row items-center justify-between gap-3 border-b border-slate-900 pb-3">
+        <div>
+          <Badge className="border-violet-800/40 bg-violet-950/30 text-[9px] text-violet-300">
+            {stageLabel}
+          </Badge>
+          <CardTitle className="mt-2 flex items-center gap-2 text-base text-slate-100">
+            <BrainCircuit className="h-4 w-4 text-violet-400" />
+            Counselor Interview
+          </CardTitle>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onReset}
+          className="h-8 border-slate-800 text-slate-400"
+        >
+          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+          Reset
+        </Button>
+      </CardHeader>
+
+      <CardContent className="space-y-4 p-4">
+        <div className="max-h-[430px] space-y-3 overflow-y-auto pr-1">
+          {conversation.map((message, index) => (
+            <div
+              key={`${message.timestamp}-${index}`}
+              className={cn(
+                "rounded-lg border p-3",
+                message.role === "assistant"
+                  ? "mr-8 border-violet-900/30 bg-violet-950/20"
+                  : "ml-8 border-slate-800 bg-slate-950/70"
+              )}
+            >
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {message.role === "assistant" ? "Counselor Agent" : "You"}
+              </div>
+              <p className="text-sm leading-relaxed text-slate-200">{message.content}</p>
+            </div>
+          ))}
+          {isSubmitting && (
+            <div className="mr-8 rounded-lg border border-violet-900/30 bg-violet-950/20 p-3 text-sm text-slate-400">
+              <Loader2 className="mr-2 inline h-4 w-4 animate-spin text-violet-400" />
+              Thinking through your intake signals...
+            </div>
+          )}
+        </div>
+
+        {quickReplies.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {quickReplies.map((reply) => (
+              <button
+                key={reply}
+                type="button"
+                onClick={() => setAnswer(reply)}
+                className="rounded-md border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-violet-700/50 hover:text-slate-200"
+              >
+                {reply}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Input
+            value={answer}
+            onChange={(event) => setAnswer(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") submit();
+            }}
+            disabled={isSubmitting}
+            placeholder="Answer in your own words..."
+            className="border-slate-800 bg-slate-950 text-slate-200"
+          />
+          <Button
+            onClick={submit}
+            disabled={!answer.trim() || isSubmitting}
+            className="bg-violet-600 text-white hover:bg-violet-700"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                Send <ArrowRight className="ml-1.5 h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

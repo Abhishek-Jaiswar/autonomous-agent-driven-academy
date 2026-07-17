@@ -7,16 +7,13 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
 }
 
 const getInitialState = (): AuthState => {
   if (typeof window !== "undefined") {
     try {
-      const storedToken = localStorage.getItem("astralearn_token");
       const storedUser = localStorage.getItem("astralearn_user");
       return {
-        token: storedToken,
         user: storedUser ? JSON.parse(storedUser) : null,
       };
     } catch {
@@ -25,7 +22,6 @@ const getInitialState = (): AuthState => {
   }
   return {
     user: null,
-    token: null,
   };
 };
 
@@ -35,23 +31,19 @@ const authSlice = createSlice({
   reducers: {
     setCredentials(
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User }>
     ) {
-      const { user, token } = action.payload;
+      const { user } = action.payload;
       state.user = user;
-      state.token = token;
 
       if (typeof window !== "undefined") {
-        localStorage.setItem("astralearn_token", token);
         localStorage.setItem("astralearn_user", JSON.stringify(user));
       }
     },
     logout(state) {
       state.user = null;
-      state.token = null;
 
       if (typeof window !== "undefined") {
-        localStorage.removeItem("astralearn_token");
         localStorage.removeItem("astralearn_user");
         localStorage.removeItem("astralearn_goal_id"); // Clean up session goal too
       }

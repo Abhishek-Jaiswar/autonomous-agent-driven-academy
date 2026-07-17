@@ -17,9 +17,13 @@ Category: "{category}"
 Duration: {durationDays} days
 
 Synthesize:
-1. Baseline skills mapping: Identify the key technologies or topics related to their goal and map them to their experience level (e.g. Python: "intermediate", ML: "beginner", GenAI: "none").
-2. Core learning style: Pick "visual", "practical", "text", or "balanced" based on their preferred formatting and practical work preferences.
-3. Weak areas: List of concepts or topics where they need foundational build-ups, remediation, extra help, or detailed flowcharts.
+1. A concise learnerSummary written for internal agent handoff.
+2. A normalizedGoal containing title, category, targetOutcome, optional deliverable, and durationDays.
+3. Baseline skills mapping: identify key technologies or topics and map them to levels like "none", "beginner", "intermediate", or "advanced".
+4. Preferences: learningStyle ("visual", "practical", "text", or "balanced"), dailyTimeCommitment if known, and assessmentMode ("quiz", "project", or "mixed").
+5. Weak areas: concepts requiring foundational build-up, remediation, examples, or visual explanation.
+6. Risks: timeline, prerequisite, motivation, resource, or assessment risks with severity and note.
+7. Agent directives for the Librarian, Curriculum Architect, Teacher, and Examiner.
 
 Output as a structured JSON object matching the requested schema.`,
   ],

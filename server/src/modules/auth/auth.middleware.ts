@@ -16,10 +16,13 @@ export interface AuthenticatedRequest extends Request {
  */
 export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Format: "Bearer <token>"
+  const bearerToken = authHeader && authHeader.split(" ")[1]; // Format: "Bearer <token>"
+  
+  // Extract token from cookie (preferred) or Bearer header (fallback)
+  const token = req.cookies?.token || bearerToken;
 
   if (!token) {
-    logger.warn("[AuthMiddleware] Authorization token missing in request headers");
+    logger.warn("[AuthMiddleware] Authentication token missing in cookies and headers");
     res.status(401).json({
       success: false,
       error: "Authentication token required",

@@ -58,3 +58,75 @@ export interface ApiError {
   error: string;
   details?: unknown;
 }
+
+export type CounselorStage =
+  | "goal_clarity"
+  | "baseline"
+  | "constraints"
+  | "success_target"
+  | "review"
+  | "complete";
+
+export interface CounselorSignal {
+  label: string;
+  value: string;
+  confidence: number;
+}
+
+export interface CounselorSignals {
+  normalizedGoal?: string;
+  domain?: string;
+  targetOutcome?: string;
+  deliverable?: string;
+  timelinePressure?: "low" | "medium" | "high" | "unknown";
+  baselineHints?: CounselorSignal[];
+  constraints?: CounselorSignal[];
+  preferences?: CounselorSignal[];
+  stageLabel?: string;
+}
+
+export interface ProfileRisk {
+  type: string;
+  severity: "low" | "medium" | "high";
+  note: string;
+}
+
+export interface LearnerProfileReview {
+  learnerSummary?: string;
+  normalizedGoal?: {
+    title?: string;
+    category?: string;
+    targetOutcome?: string;
+    deliverable?: string;
+    durationDays?: number;
+  };
+  skillBaseline?: Record<string, string>;
+  learningStyle?: "visual" | "practical" | "text" | "balanced";
+  preferences?: {
+    learningStyle?: "visual" | "practical" | "text" | "balanced";
+    dailyTimeCommitment?: string;
+    assessmentMode?: "quiz" | "project" | "mixed";
+  };
+  weakAreas?: string[];
+  risks?: ProfileRisk[];
+  agentDirectives?: {
+    librarian?: string[];
+    curriculumArchitect?: string[];
+    teacher?: string[];
+    examiner?: string[];
+  };
+}
+
+export interface CounselorInterviewResponse {
+  counselorQuestions: string[];
+  currentQuestionIndex: number;
+  currentStage: CounselorStage;
+  stageLabel: string;
+  confidence: number;
+  extractedSignals: CounselorSignals;
+  quickReplies: string[];
+  completionReason?: string;
+  isComplete: boolean;
+  conversation: ConversationMessage[];
+  profile?: LearnerProfileReview;
+}

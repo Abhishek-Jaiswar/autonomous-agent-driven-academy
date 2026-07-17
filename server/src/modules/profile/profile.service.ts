@@ -1,5 +1,12 @@
 import { db } from "../../config/database.js";
 import { logger } from "../../utils/logger.js";
+import type {
+  AgentDirectives,
+  CounselorSignals,
+  NormalizedGoal,
+  ProfilePreferences,
+  ProfileRisk,
+} from "../../graph/state.js";
 
 /**
  * Service to handle business logic and database writes for Profiles and Goals.
@@ -19,13 +26,31 @@ export const profileService = {
   /**
    * Updates the Counselor questions and initial interview chat array on start.
    */
-  async initializeCounselorQuestions(goalId: string, counselorQuestions: string[], interviewChat: any[]) {
+  async initializeCounselorState(
+    goalId: string,
+    counselorQuestions: string[],
+    interviewChat: any[],
+    counselorStage: string,
+    counselorStageLabel: string,
+    counselorConfidence: number,
+    counselorSignals: CounselorSignals,
+    counselorQuickReplies: string[],
+    completionReason = ""
+  ) {
     logger.info(`[ProfileService] Initializing Counselor questions for goal [${goalId}]`);
     return await db.profile.update({
       where: { goalId },
       data: {
         counselorQuestions,
         interviewChat: interviewChat as any,
+        counselorStage,
+        counselorConfidence,
+        counselorSignals: {
+          ...counselorSignals,
+          stageLabel: counselorStageLabel,
+        } as any,
+        counselorQuickReplies,
+        completionReason,
       },
     });
   },
@@ -33,12 +58,31 @@ export const profileService = {
   /**
    * Appends/updates the interview conversation chat log JSON in the database.
    */
-  async updateChatLog(goalId: string, chatLog: any[]) {
+  async updateCounselorState(
+    goalId: string,
+    chatLog: any[],
+    counselorQuestions: string[],
+    counselorStage: string,
+    counselorStageLabel: string,
+    counselorConfidence: number,
+    counselorSignals: CounselorSignals,
+    counselorQuickReplies: string[],
+    completionReason = ""
+  ) {
     logger.debug(`[ProfileService] Updating chat logs for goal [${goalId}]`);
     return await db.profile.update({
       where: { goalId },
       data: {
         interviewChat: chatLog as any,
+        counselorQuestions,
+        counselorStage,
+        counselorConfidence,
+        counselorSignals: {
+          ...counselorSignals,
+          stageLabel: counselorStageLabel,
+        } as any,
+        counselorQuickReplies,
+        completionReason,
       },
     });
   },
@@ -48,18 +92,27 @@ export const profileService = {
    */
   async saveProfileSynthesis(
     goalId: string,
+    learnerSummary: string,
+    normalizedGoal: NormalizedGoal,
     skillBaseline: Record<string, string>,
-    learningStyle: string,
-    weakAreas: string[]
+    preferences: ProfilePreferences,
+    weakAreas: string[],
+    risks: ProfileRisk[],
+    agentDirectives: AgentDirectives
   ) {
     logger.info(`[ProfileService] Saving profile synthesis for goal [${goalId}]`);
     return await db.$transaction(async (tx: any) => {
       const profile = await tx.profile.update({
         where: { goalId },
         data: {
+          learnerSummary,
+          normalizedGoal: normalizedGoal as any,
           skillBaseline: skillBaseline as any,
-          learningStyle,
+          learningStyle: preferences.learningStyle,
+          preferences: preferences as any,
           weakAreas,
+          risks: risks as any,
+          agentDirectives: agentDirectives as any,
         },
       });
 
@@ -67,7 +120,7 @@ export const profileService = {
         data: {
           lessonId: null,
           agentName: "Profiler",
-          message: `Learner profile compiled successfully. Preferred style: ${learningStyle}. Key weak areas: ${weakAreas.join(", ")}`,
+          message: `Learner profile compiled successfully. Preferred style: ${preferences.learningStyle}. Key weak areas: ${weakAreas.join(", ")}`,
           level: "INFO",
         },
       });

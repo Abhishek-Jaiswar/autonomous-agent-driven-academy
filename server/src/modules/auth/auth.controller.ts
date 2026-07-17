@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import { authService } from "./auth.service.js";
 import { logger } from "../../utils/logger.js";
+import type { AuthenticatedRequest } from "./auth.middleware.js";
 
 // Input validation schemas
 const authPayloadSchema = z.object({
@@ -63,10 +64,20 @@ export async function login(req: Request, res: Response) {
     const { email, password } = result.data;
     const authData = await authService.authenticateUser(email, password);
 
+    // Set cookie containing the JWT token
+    res.cookie("token", authData.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching JWT expiration)
+    });
+
     res.status(200).json({
       success: true,
       message: "Authentication successful",
-      data: authData,
+      data: {
+        user: authData.user,
+      },
     });
   } catch (error) {
     logger.error("[AuthController] Login error", {
@@ -75,6 +86,63 @@ export async function login(req: Request, res: Response) {
     res.status(401).json({
       success: false,
       error: error instanceof Error ? error.message : "Invalid credentials",
+    });
+  }
+}
+
+/**
+ * Controller for user logout.
+ */
+export async function logout(req: Request, res: Response) {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    logger.error("[AuthController] Logout error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal logout error",
+    });
+  }
+}
+
+/**
+ * Controller to retrieve current authenticated user details.
+ */
+export async function getMe(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: req.user.id,
+        email: req.user.email,
+      },
+    });
+  } catch (error) {
+    logger.error("[AuthController] GetMe error", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
     });
   }
 }

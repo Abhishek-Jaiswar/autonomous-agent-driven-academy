@@ -6,15 +6,89 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export type CounselorStage =
+  | "goal_clarity"
+  | "baseline"
+  | "constraints"
+  | "success_target"
+  | "review"
+  | "complete";
+
+export interface CounselorSignal {
+  label: string;
+  value: string;
+  confidence: number;
+}
+
+export interface CounselorSignals {
+  normalizedGoal?: string | undefined;
+  domain?: string | undefined;
+  targetOutcome?: string | undefined;
+  deliverable?: string | undefined;
+  timelinePressure?: "low" | "medium" | "high" | "unknown" | undefined;
+  baselineHints: CounselorSignal[];
+  constraints: CounselorSignal[];
+  preferences: CounselorSignal[];
+}
+
+export interface CounselorTurnData {
+  assistantMessage: string;
+  currentStage: CounselorStage;
+  stageLabel: string;
+  confidence: number;
+  extractedSignals: CounselorSignals;
+  quickReplies: string[];
+  isComplete: boolean;
+  completionReason?: string;
+}
+
+export interface ProfileRisk {
+  type: string;
+  severity: "low" | "medium" | "high";
+  note: string;
+}
+
+export interface NormalizedGoal {
+  title: string;
+  category: string;
+  targetOutcome: string;
+  deliverable?: string | undefined;
+  durationDays: number;
+}
+
+export interface ProfilePreferences {
+  learningStyle: "visual" | "practical" | "text" | "balanced";
+  dailyTimeCommitment?: string | undefined;
+  assessmentMode: "quiz" | "project" | "mixed";
+}
+
+export interface AgentDirectives {
+  librarian: string[];
+  curriculumArchitect: string[];
+  teacher: string[];
+  examiner: string[];
+}
+
 export interface LearnerProfileData {
   goalId: string;
   category: string;
   durationDays: number;
   goalText: string;
+  learnerSummary: string;
+  normalizedGoal: NormalizedGoal;
   skillBaseline: Record<string, string>; // e.g. { Python: "intermediate", GenAI: "beginner" }
+  preferences: ProfilePreferences;
   learningStyle: "visual" | "practical" | "text" | "balanced";
   weakAreas: string[];
+  risks: ProfileRisk[];
+  agentDirectives: AgentDirectives;
 }
+
+const emptyCounselorSignals = (): CounselorSignals => ({
+  baselineHints: [],
+  constraints: [],
+  preferences: [],
+});
 
 export const SchoolStateAnnotation = Annotation.Root({
   // Core Identifiers
@@ -43,6 +117,36 @@ export const SchoolStateAnnotation = Annotation.Root({
     reducer: (_, update) => update,
     default: () => [],
   }),
+
+  counselorStage: Annotation<CounselorStage>({
+    reducer: (_, update) => update,
+    default: () => "goal_clarity",
+  }),
+
+  counselorStageLabel: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "Goal Clarity",
+  }),
+
+  counselorConfidence: Annotation<number>({
+    reducer: (_, update) => update,
+    default: () => 0,
+  }),
+
+  counselorSignals: Annotation<CounselorSignals>({
+    reducer: (_, update) => update,
+    default: emptyCounselorSignals,
+  }),
+
+  counselorQuickReplies: Annotation<string[]>({
+    reducer: (_, update) => update,
+    default: () => [],
+  }),
+
+  completionReason: Annotation<string>({
+    reducer: (_, update) => update,
+    default: () => "",
+  }),
   
   currentQuestionIndex: Annotation<number>({
     reducer: (current, update) => {
@@ -60,7 +164,7 @@ export const SchoolStateAnnotation = Annotation.Root({
 
   // Conversation history
   conversation: Annotation<ChatMessage[]>({
-    reducer: (current, update) => [...current, ...update],
+    reducer: (_, update) => update,
     default: () => [],
   }),
 
@@ -72,9 +176,27 @@ export const SchoolStateAnnotation = Annotation.Root({
       category: "",
       durationDays: 0,
       goalText: "",
+      learnerSummary: "",
+      normalizedGoal: {
+        title: "",
+        category: "",
+        targetOutcome: "",
+        durationDays: 0,
+      },
       skillBaseline: {},
+      preferences: {
+        learningStyle: "balanced",
+        assessmentMode: "mixed",
+      },
       learningStyle: "balanced",
       weakAreas: [],
+      risks: [],
+      agentDirectives: {
+        librarian: [],
+        curriculumArchitect: [],
+        teacher: [],
+        examiner: [],
+      },
     }),
   }),
   

@@ -2,11 +2,26 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, AlertCircle, Compass, HelpCircle, Terminal, ChevronRight, Award, Loader2 } from "lucide-react";
+import {
+  BookOpen,
+  AlertCircle,
+  Compass,
+  HelpCircle,
+  Terminal,
+  ChevronRight,
+  Award,
+  Loader2,
+} from "lucide-react";
 
-import { useGetCurriculumQuery } from "@/lib/redux/api/apiSlice";
+import { useGetCurriculumQuery } from "@/store/api/auth/auth-api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -16,8 +31,12 @@ export default function Classroom() {
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
 
   // Quiz state
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
-  const [submittedQuestions, setSubmittedQuestions] = useState<Record<number, boolean>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<
+    Record<number, string>
+  >({});
+  const [submittedQuestions, setSubmittedQuestions] = useState<
+    Record<number, boolean>
+  >({});
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [quizFinished, setQuizFinished] = useState(false);
 
@@ -37,7 +56,9 @@ export default function Classroom() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-10 h-10 animate-spin text-violet-500" />
-        <p className="text-slate-400 text-sm font-mono animate-pulse">Entering classroom...</p>
+        <p className="text-slate-400 text-sm font-mono animate-pulse">
+          Entering classroom...
+        </p>
       </div>
     );
   }
@@ -50,7 +71,8 @@ export default function Classroom() {
             <AlertCircle className="w-5 h-5" /> Access Denied
           </CardTitle>
           <CardDescription className="text-red-300/80">
-            Failed to fetch classroom contents. Make sure you are logged in and your session is active.
+            Failed to fetch classroom contents. Make sure you are logged in and
+            your session is active.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -92,11 +114,17 @@ export default function Classroom() {
       <Card className="border-slate-900 bg-slate-900/30 text-center max-w-lg mx-auto mt-10 py-10">
         <CardContent className="space-y-4">
           <BookOpen className="w-12 h-12 text-slate-500 mx-auto" />
-          <h3 className="text-lg font-bold text-white">No active lesson selected</h3>
+          <h3 className="text-lg font-bold text-white">
+            No active lesson selected
+          </h3>
           <p className="text-sm text-slate-400">
-            Please go back to the **Curriculum Map** and select an unlocked lesson to begin studying.
+            Please go back to the **Curriculum Map** and select an unlocked
+            lesson to begin studying.
           </p>
-          <Button onClick={() => router.push("/dashboard/curriculum")} className="bg-violet-600 hover:bg-violet-700">
+          <Button
+            onClick={() => router.push("/dashboard/curriculum")}
+            className="bg-violet-600 hover:bg-violet-700"
+          >
             Go to Curriculum Map
           </Button>
         </CardContent>
@@ -105,7 +133,9 @@ export default function Classroom() {
   }
 
   // Parse activities if present
-  const quizActivity = activeLesson.activities?.find((act: any) => act.type === "QUIZ");
+  const quizActivity = activeLesson.activities?.find(
+    (act: any) => act.type === "QUIZ",
+  );
   const quizPayload = quizActivity?.payload as any; // Expected format: { questions: Array<{ question, options, correct, explanation }> }
   const quizQuestions = quizPayload?.questions || [];
 
@@ -126,7 +156,8 @@ export default function Classroom() {
       // Calculate final score
       let correctAnswers = 0;
       quizQuestions.forEach((q: any, idx: number) => {
-        const selected = selectedAnswers[idx] || (idx === qIdx ? selectedAnswers[qIdx] : null);
+        const selected =
+          selectedAnswers[idx] || (idx === qIdx ? selectedAnswers[qIdx] : null);
         if (selected === q.correct) {
           correctAnswers++;
         }
@@ -138,10 +169,8 @@ export default function Classroom() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
-      
       {/* Left/Main Column: Lesson Textbook Content */}
       <div className="lg:col-span-2 space-y-6">
-        
         {/* Lesson Header */}
         <Card className="border-slate-900 bg-slate-900/50">
           <CardHeader className="pb-4">
@@ -149,20 +178,28 @@ export default function Classroom() {
               <span className="text-xs text-violet-400 font-semibold uppercase font-mono tracking-wider">
                 {activeModuleTitle}
               </span>
-              <Badge variant="secondary" className="bg-green-950/20 text-green-400 border border-green-900/30">
+              <Badge
+                variant="secondary"
+                className="bg-green-950/20 text-green-400 border border-green-900/30"
+              >
                 {activeLesson.status}
               </Badge>
             </div>
-            <CardTitle className="text-2xl font-bold text-white mt-1">{activeLesson.title}</CardTitle>
+            <CardTitle className="text-2xl font-bold text-white mt-1">
+              {activeLesson.title}
+            </CardTitle>
           </CardHeader>
           <CardContent className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed space-y-4">
             {activeLesson.content ? (
-              activeLesson.content.split("\n\n").map((para: string, idx: number) => (
-                <p key={idx}>{para.trim()}</p>
-              ))
+              activeLesson.content
+                .split("\n\n")
+                .map((para: string, idx: number) => (
+                  <p key={idx}>{para.trim()}</p>
+                ))
             ) : (
               <div className="py-8 text-center text-slate-500 italic">
-                Syllabus generation completed. Our Teacher Agent is currently compile-writing the study materials.
+                Syllabus generation completed. Our Teacher Agent is currently
+                compile-writing the study materials.
               </div>
             )}
           </CardContent>
@@ -185,12 +222,10 @@ export default function Classroom() {
             </CardContent>
           </Card>
         )}
-
       </div>
 
       {/* Right Column: Quiz Activities & Agent Logs */}
       <div className="space-y-6">
-        
         {/* Interactive Quiz Component */}
         {quizQuestions.length > 0 && (
           <Card className="border-slate-900 bg-slate-900/50">
@@ -204,37 +239,41 @@ export default function Classroom() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 space-y-6">
-              
               {!quizFinished ? (
                 quizQuestions.map((q: any, qIdx: number) => {
                   const isSubmitted = submittedQuestions[qIdx];
                   const selectedVal = selectedAnswers[qIdx];
-                  
+
                   return (
                     <div key={qIdx} className="space-y-3">
                       <p className="text-sm font-semibold text-slate-300">
                         {qIdx + 1}. {q.question}
                       </p>
-                      
+
                       <div className="space-y-1.5">
                         {q.options.map((opt: string, optIdx: number) => {
                           const isSelected = selectedVal === opt;
                           const isCorrect = opt === q.correct;
-                          
-                          let optStyle = "bg-slate-950/60 border-slate-900 text-slate-400 hover:border-slate-800";
+
+                          let optStyle =
+                            "bg-slate-950/60 border-slate-900 text-slate-400 hover:border-slate-800";
                           if (isSelected) {
-                            optStyle = "bg-violet-950/30 border-violet-700/60 text-violet-200";
+                            optStyle =
+                              "bg-violet-950/30 border-violet-700/60 text-violet-200";
                           }
                           if (isSubmitted) {
                             if (isCorrect) {
-                              optStyle = "bg-green-950/40 border-green-600/50 text-green-300";
+                              optStyle =
+                                "bg-green-950/40 border-green-600/50 text-green-300";
                             } else if (isSelected) {
-                              optStyle = "bg-red-950/40 border-red-600/50 text-red-300";
+                              optStyle =
+                                "bg-red-950/40 border-red-600/50 text-red-300";
                             } else {
-                              optStyle = "bg-slate-950/20 border-slate-900 text-slate-600";
+                              optStyle =
+                                "bg-slate-950/20 border-slate-900 text-slate-600";
                             }
                           }
-                          
+
                           return (
                             <div
                               key={optIdx}
@@ -258,13 +297,21 @@ export default function Classroom() {
 
                       {isSubmitted && (
                         <div className="p-3 rounded bg-slate-950 border border-slate-900 text-[11px] leading-relaxed text-slate-400">
-                          <strong className={selectedVal === q.correct ? "text-green-400" : "text-red-400"}>
-                            {selectedVal === q.correct ? "Correct! " : "Incorrect. "}
+                          <strong
+                            className={
+                              selectedVal === q.correct
+                                ? "text-green-400"
+                                : "text-red-400"
+                            }
+                          >
+                            {selectedVal === q.correct
+                              ? "Correct! "
+                              : "Incorrect. "}
                           </strong>
                           {q.explanation}
                         </div>
                       )}
-                      
+
                       <Separator className="bg-slate-900 mt-4" />
                     </div>
                   );
@@ -274,16 +321,21 @@ export default function Classroom() {
                   <div className="w-12 h-12 rounded-full bg-violet-950/30 border border-violet-500/30 flex items-center justify-center mx-auto">
                     <Award className="w-6 h-6 text-violet-400" />
                   </div>
-                  <h3 className="text-base font-bold text-white">Quiz Completed!</h3>
+                  <h3 className="text-base font-bold text-white">
+                    Quiz Completed!
+                  </h3>
                   <p className="text-xs text-slate-400">
-                    Your Score: <span className="font-bold text-violet-400">{quizScore} / {quizQuestions.length}</span> correct answers.
+                    Your Score:{" "}
+                    <span className="font-bold text-violet-400">
+                      {quizScore} / {quizQuestions.length}
+                    </span>{" "}
+                    correct answers.
                   </p>
                   <Button className="w-full bg-violet-600 hover:bg-violet-700 text-xs">
                     Unlock Next Lesson <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
               )}
-
             </CardContent>
           </Card>
         )}
@@ -292,24 +344,28 @@ export default function Classroom() {
         <Card className="border-slate-900 bg-slate-950/70 flex flex-col max-h-[300px]">
           <CardHeader className="border-b border-slate-900 py-3 flex flex-row items-center gap-2">
             <Terminal className="w-4 h-4 text-violet-400" />
-            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-wider">Teacher Agent Audit</CardTitle>
+            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Teacher Agent Audit
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-4 font-mono text-[10px] space-y-2 overflow-y-auto bg-slate-950">
             {activeLesson.agentLogs && activeLesson.agentLogs.length > 0 ? (
               activeLesson.agentLogs.map((log: any) => (
                 <div key={log.id} className="border-l border-slate-800 pl-2">
-                  <span className="text-violet-400 block mb-0.5">[{log.nodeName}]</span>
+                  <span className="text-violet-400 block mb-0.5">
+                    [{log.nodeName}]
+                  </span>
                   <p className="text-slate-500 leading-normal">{log.message}</p>
                 </div>
               ))
             ) : (
-              <p className="text-slate-600 italic">No agent log traces reported during compile.</p>
+              <p className="text-slate-600 italic">
+                No agent log traces reported during compile.
+              </p>
             )}
           </CardContent>
         </Card>
-
       </div>
-
     </div>
   );
 }

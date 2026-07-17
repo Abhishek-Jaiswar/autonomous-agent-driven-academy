@@ -6,7 +6,7 @@ import { InterviewSidebar } from "./InterviewSidebar";
 import { MessageBubble } from "./MessageBubble";
 import { AnswerInput } from "./AnswerInput";
 import { BrainCircuit } from "lucide-react";
-import { submitAnswer } from "@/lib/api";
+import { useSubmitAnswerMutation } from "@/store/api/counceler/councelerApi";
 
 export interface Message {
   id: string;
@@ -20,6 +20,8 @@ interface Props {
 }
 
 export function InterviewRoom({ interview }: Props) {
+  const [submitAnswerMutation] = useSubmitAnswerMutation();
+
   // Seed the conversation with the first question from the server
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -63,10 +65,20 @@ export function InterviewRoom({ interview }: Props) {
     setError("");
 
     try {
-      const res = await submitAnswer(interview.interviewId, trimmed);
+      const result = await submitAnswerMutation({
+        interviewId: interview.interviewId,
+        answer: trimmed,
+      });
 
-      if (!res.success) {
-        setError(res.error ?? "Something went wrong. Try again.");
+      if ("error" in result) {
+        const err = result.error as any;
+        setError(err.data?.error ?? "Something went wrong. Try again.");
+        return;
+      }
+
+      const res = result.data;
+      if (!res || !res.success) {
+        setError("Something went wrong. Try again.");
         return;
       }
 
