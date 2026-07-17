@@ -36,8 +36,8 @@ export function CounselorInterview({
     <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)_300px]">
       <aside className="space-y-3">
         <div>
-          <h1 className="text-lg font-bold text-slate-100">Intake Flow</h1>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500">
+          <h1 className="text-lg font-bold ">Intake Flow</h1>
+          <p className="mt-1 text-xs leading-relaxed ">
             The counselor adapts each turn until the learner model is ready.
           </p>
         </div>

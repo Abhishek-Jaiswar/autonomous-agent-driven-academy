@@ -10,7 +10,9 @@ interface CounselorStageRailProps {
 }
 
 export function CounselorStageRail({ currentStage }: CounselorStageRailProps) {
-  const activeIndex = counselorStages.findIndex((stage) => stage.id === currentStage);
+  const activeIndex = counselorStages.findIndex(
+    (stage) => stage.id === currentStage,
+  );
 
   return (
     <div className="space-y-3">
@@ -24,9 +26,9 @@ export function CounselorStageRail({ currentStage }: CounselorStageRailProps) {
             className={cn(
               "flex gap-3 rounded-lg border p-3 transition-colors",
               isActive
-                ? "border-violet-700/50 bg-violet-950/20"
-                : "border-slate-900 bg-slate-950/30",
-              isDone && "border-green-900/40 bg-green-950/10"
+                ? "border-primary bg-primary/10"
+                : "border-border bg-primary-foreground",
+              isDone && "border-green-900/40 bg-green-950/10",
             )}
           >
             <div className="mt-0.5">
@@ -36,14 +38,16 @@ export function CounselorStageRail({ currentStage }: CounselorStageRailProps) {
                 <CircleDot
                   className={cn(
                     "h-4 w-4",
-                    isActive ? "text-violet-400" : "text-slate-700"
+                    isActive ? "text-primary" : "text-accent-foreground/40",
                   )}
                 />
               )}
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-semibold text-slate-200">{stage.label}</div>
-              <div className="mt-0.5 text-[11px] leading-snug text-slate-500">
+              <div className="text-xs font-semibold leading-snug">
+                {stage.label}
+              </div>
+              <div className="mt-0.5 text-[11px] leading-snug">
                 {stage.detail}
               </div>
             </div>

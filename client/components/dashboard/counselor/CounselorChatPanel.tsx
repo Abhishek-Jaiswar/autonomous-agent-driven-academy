@@ -36,44 +36,38 @@ export function CounselorChatPanel({
   }
 
   return (
-    <Card className="border-slate-900 bg-slate-900/40">
-      <CardHeader className="flex-row items-center justify-between gap-3 border-b border-slate-900 pb-3">
+    <Card className="">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border pb-3">
         <div>
-          <Badge className="border-violet-800/40 bg-violet-950/30 text-[9px] text-violet-300">
-            {stageLabel}
-          </Badge>
-          <CardTitle className="mt-2 flex items-center gap-2 text-base text-slate-100">
-            <BrainCircuit className="h-4 w-4 text-violet-400" />
+          <Badge className="text-[9px] ">{stageLabel}</Badge>
+          <CardTitle className="mt-2 flex items-center gap-2 text-base">
+            <BrainCircuit className="h-4 w-4" />
             Counselor Interview
           </CardTitle>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onReset}
-          className="h-8 border-slate-800 text-slate-400"
-        >
+        <Button variant="outline" size="sm" onClick={onReset}>
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
           Reset
         </Button>
       </CardHeader>
 
       <CardContent className="space-y-4 p-4">
-        <div className="max-h-[430px] space-y-3 overflow-y-auto pr-1">
+        <div className="max-h-107.5 space-y-3 overflow-y-auto pr-1">
           {conversation.map((message, index) => (
             <div
               key={`${message.timestamp}-${index}`}
               className={cn(
                 "rounded-lg border p-3",
                 message.role === "assistant"
-                  ? "mr-8 border-violet-900/30 bg-violet-950/20"
-                  : "ml-8 border-slate-800 bg-slate-950/70"
+                  ? "mr-8 border-secondary-foreground"
+                  : "ml-8 border-primary bg-secondary",
               )}
             >
-              <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                 {message.role === "assistant" ? "Counselor Agent" : "You"}
+                <Badge>{message.timestamp}</Badge>
               </div>
-              <p className="text-sm leading-relaxed text-slate-200">{message.content}</p>
+              <p className="text-sm leading-relaxed">{message.content}</p>
             </div>
           ))}
           {isSubmitting && (
