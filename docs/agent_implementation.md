@@ -94,7 +94,12 @@ export const SchoolStateAnnotation = Annotation.Root({
 * **Output Schema**:
   ```typescript
   const profileSchema = z.object({
-    skillBaseline: z.record(z.string(), z.string()),
+    skillBaseline: z.array(
+      z.object({
+        skill: z.string(),
+        level: z.string(),
+      })
+    ),
     learningStyle: z.enum(["visual", "practical", "text", "balanced"]),
     weakAreas: z.array(z.string()),
   });
@@ -148,18 +153,20 @@ export const SchoolStateAnnotation = Annotation.Root({
 * **Logic**: Maps lessons to specific days (e.g. Lesson 1 = Day 1, Lesson 2 = Day 1, Lesson 3 = Day 2) based on the user's available time. Sets the first lesson status to `UNLOCKED` and others to `LOCKED`.
 
 ### 3.7. Teacher Agent
-* **Responsibility**: Teach the active lesson and answer students' queries (RAG).
-* **Context**: Express Endpoint (`GET /classroom/lesson/:lessonId`) & WebSocket Doubt Listener.
+* **Responsibility**: Teach the active lesson (on-demand textbook guide generation) and answer students' doubts using scoped RAG.
+* **Context**: Express Endpoint (`GET /curriculum/lesson/:lessonId` and `POST /curriculum/lesson/:lessonId/doubt`) & WebSocket `submit-doubt` Listener.
 * **QA (RAG) Flow**:
-  1. Retrieve student's question.
-  2. Embed using Gemini `text-embedding-004`.
-  3. Query the **Pinecone index** for the top 5 matching resource chunks.
-  4. Generate answer:
+  1. Retrieve student's question/doubt.
+  2. Embed using Gemini `gemini-embedding-2` (1024 dimensions).
+  3. Query the **Pinecone index** filtering by active lesson resources (`resourceId: { $in: activeLessonResourceIds }`).
+  4. Generate grounded answer:
      ```
-     You are the Teacher Agent. Answer this doubt: "{doubt}".
+     You are the Teacher Agent. Answer this doubt: "{studentDoubt}".
      Base your answer strictly on the following verified chunks:
      {retrievedChunks}
-     If the answer is not in the text, politely state you do not know.
+     If the answer is not in the text, politely state:
+     "I cannot verify that answer from your course materials. Let me focus on what is in your verified resources..."
+     and cite source titles.
      ```
 
 ### 3.8. Visual Explainer Agent

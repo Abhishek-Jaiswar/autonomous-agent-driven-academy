@@ -36,7 +36,7 @@ export function CounselorChatPanel({
   }
 
   return (
-    <Card className="">
+    <Card className="relative">
       <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border pb-3">
         <div>
           <Badge className="text-[9px] ">{stageLabel}</Badge>
@@ -51,7 +51,7 @@ export function CounselorChatPanel({
         </Button>
       </CardHeader>
 
-      <CardContent className="space-y-4 p-4">
+      <CardContent className="space-y-4 p-4 relative">
         <div className="max-h-107.5 space-y-3 overflow-y-auto pr-1">
           {conversation.map((message, index) => (
             <div
@@ -65,13 +65,13 @@ export function CounselorChatPanel({
             >
               <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                 {message.role === "assistant" ? "Counselor Agent" : "You"}
-                <Badge>{message.timestamp}</Badge>
+                {/* <Badge>{message.timestamp}</Badge> */}
               </div>
               <p className="text-sm leading-relaxed">{message.content}</p>
             </div>
           ))}
           {isSubmitting && (
-            <div className="mr-8 rounded-lg border border-violet-900/30 bg-violet-950/20 p-3 text-sm text-slate-400">
+            <div className="mr-8 rounded-lg border bg-primary p-3 text-sm text-slate-400">
               <Loader2 className="mr-2 inline h-4 w-4 animate-spin text-violet-400" />
               Thinking through your intake signals...
             </div>
@@ -85,7 +85,7 @@ export function CounselorChatPanel({
                 key={reply}
                 type="button"
                 onClick={() => setAnswer(reply)}
-                className="rounded-md border border-slate-800 bg-slate-950 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-violet-700/50 hover:text-slate-200"
+                className="rounded-md border border-primary/40 bg-primary-30 px-3 py-1.5 text-xs  transition-colors hover:border-primary/50 hover:text-primary"
               >
                 {reply}
               </button>
@@ -102,12 +102,10 @@ export function CounselorChatPanel({
             }}
             disabled={isSubmitting}
             placeholder="Answer in your own words..."
-            className="border-slate-800 bg-slate-950 text-slate-200"
           />
           <Button
             onClick={submit}
             disabled={!answer.trim() || isSubmitting}
-            className="bg-violet-600 text-white hover:bg-violet-700"
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

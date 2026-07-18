@@ -17,7 +17,12 @@ import { z } from "zod";
 
 export const profileSynthesisSchema = z.object({
   skillBaseline: z
-    .record(z.string(), z.string())
+    .array(
+      z.object({
+        skill: z.string().describe("The key technology, concept, or language"),
+        level: z.string().describe("The experience level (e.g. beginner, intermediate, advanced, none)"),
+      })
+    )
     .describe("Mapping of key technologies/concepts to user experience levels"),
   learningStyle: z
     .enum(["visual", "practical", "text", "balanced"])

@@ -1,0 +1,116 @@
+{
+  "category": "job_project",
+  "completionReason": "",
+  "conversation": [
+    {
+      "content": "Welcome to AstraLearn AI! Your 21-day project to build a RAG-based job recommendation system sounds fantastic. To tailor your curriculum, could you clarify who the end-user is and what exactly the system will recommend? For example, are we matching resumes to job descriptions, or recommending jobs to candidates?",
+      "role": "assistant",
+      "timestamp": "2026-07-17T20:09:17.973Z"
+    },
+    {
+      "content": "Matching resumes to jobs",
+      "role": "user",
+      "timestamp": "2026-07-17T20:48:33.970Z"
+    },
+    {
+      "content": "Got it, matching resumes to jobs is a great use case. To tailor the next 21 days, what is your current experience level with Python and Generative AI or LLMs?",
+      "role": "assistant",
+      "timestamp": "2026-07-17T20:48:33.970Z"
+    },
+    {
+      "content": "Beginner (No Python)",
+      "role": "user",
+      "timestamp": "2026-07-17T20:51:48.896Z"
+    },
+    {
+      "content": "Starting with no Python means we'll need to cover coding basics first. To fit this into 21 days, how many hours per day can you dedicate to studying and building?",
+      "role": "assistant",
+      "timestamp": "2026-07-17T20:51:48.896Z"
+    },
+    {
+      "content": "1-2 hours/day",
+      "role": "user",
+      "timestamp": "2026-07-17T20:57:17.925Z"
+    },
+    {
+      "content": "Got it, 1-2 hours daily for 21 days is a tight but manageable window if we focus on essential Python and pre-built GenAI tools. To set our success target, how would you prefer to test your progress? Would you like hands-on coding milestones, conceptual quizzes, or a final project review?",
+      "role": "assistant",
+      "timestamp": "2026-07-17T20:57:17.925Z"
+    }
+  ],
+  "counselorConfidence": 80,
+  "counselorQuestions": [
+    "Welcome to AstraLearn AI! Your 21-day project to build a RAG-based job recommendation system sounds fantastic. To tailor your curriculum, could you clarify who the end-user is and what exactly the system will recommend? For example, are we matching resumes to job descriptions, or recommending jobs to candidates?",
+    "Got it, matching resumes to jobs is a great use case. To tailor the next 21 days, what is your current experience level with Python and Generative AI or LLMs?",
+    "Starting with no Python means we'll need to cover coding basics first. To fit this into 21 days, how many hours per day can you dedicate to studying and building?",
+    "Got it, 1-2 hours daily for 21 days is a tight but manageable window if we focus on essential Python and pre-built GenAI tools. To set our success target, how would you prefer to test your progress? Would you like hands-on coding milestones, conceptual quizzes, or a final project review?"
+  ],
+  "counselorQuickReplies": [
+    "Coding milestones",
+    "Conceptual quizzes",
+    "Final project review",
+    "Mix of both"
+  ],
+  "counselorSignals": {
+    "baselineHints": [
+      {
+        "confidence": 100,
+        "label": "Python Experience",
+        "value": "Beginner (No Python)"
+      },
+      {
+        "confidence": 90,
+        "label": "Generative AI Experience",
+        "value": "Beginner"
+      }
+    ],
+    "constraints": [
+      {
+        "confidence": 100,
+        "label": "Daily Time Commitment",
+        "value": "1-2 hours/day"
+      }
+    ],
+    "deliverable": "RAG system matching resumes to job descriptions",
+    "domain": "Generative AI",
+    "normalizedGoal": "Learn Generative AI and build a RAG job recommendation system matching resumes to jobs",
+    "preferences": [],
+    "targetOutcome": "A functional RAG-based job recommendation prototype matching resumes to jobs",
+    "timelinePressure": "high"
+  },
+  "counselorStage": "success_target",
+  "counselorStageLabel": "Defining your success criteria",
+  "currentQuestionIndex": 3,
+  "durationDays": 21,
+  "goalId": "4f6994ab-1058-4c1e-990c-a9a7a43fd778",
+  "goalText": "I want to learn Generative AI and build a RAG product recommendation system for jobs.",
+  "isComplete": false,
+  "lastUserResponse": "1-2 hours/day",
+  "profile": {
+    "agentDirectives": {
+      "curriculumArchitect": [],
+      "examiner": [],
+      "librarian": [],
+      "teacher": []
+    },
+    "category": "",
+    "durationDays": 0,
+    "goalId": "",
+    "goalText": "",
+    "learnerSummary": "",
+    "learningStyle": "balanced",
+    "normalizedGoal": {
+      "category": "",
+      "durationDays": 0,
+      "targetOutcome": "",
+      "title": ""
+    },
+    "preferences": {
+      "assessmentMode": "mixed",
+      "learningStyle": "balanced"
+    },
+    "risks": [],
+    "skillBaseline": {},
+    "weakAreas": []
+  }
+}

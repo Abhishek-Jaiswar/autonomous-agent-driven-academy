@@ -12,6 +12,7 @@ model User {
   email        String   @unique
   passwordHash String
   name         String?
+  planTier     String   @default("free") // "free" | "pro"
   goals        Goal[]
   createdAt    DateTime @default(now())
 }
@@ -35,6 +36,12 @@ model Profile {
   goal               Goal     @relation(fields: [goalId], references: [id])
   learnerSummary     String   @default("")
   normalizedGoal     Json     @default("{}")
+  goalClassification Json     @default("{}")
+  problemContext     Json     @default("{}")
+  constraints        Json     @default("{}")
+  learningPreferences Json    @default("{}")
+  successCriteria    Json     @default("{}")
+  prerequisiteGaps   String[] @default([])
   skillBaseline      Json     // Baseline skill levels
   learningStyle      String   // visual, practical, text
   preferences        Json     @default("{}")
@@ -68,12 +75,13 @@ model Phase {
 }
 
 model Module {
-  id      String   @id @default(uuid())
-  phaseId String
-  phase   Phase    @relation(fields: [phaseId], references: [id])
-  title   String
-  order   Int
-  lessons Lesson[]
+  id               String   @id @default(uuid())
+  phaseId          String
+  phase            Phase    @relation(fields: [phaseId], references: [id])
+  title            String
+  order            Int
+  generationStatus String   @default("SKELETON") // SKELETON | UNLOCKED | COMPLETED
+  lessons          Lesson[]
 }
 
 model Lesson {

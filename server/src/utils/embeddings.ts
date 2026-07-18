@@ -2,10 +2,35 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { env } from "../config/env.js";
 import { logger } from "./logger.js";
 
-// Initialize Google GenAI Embeddings client (free-tier text-embedding-004 model)
-export const embeddingsClient = new GoogleGenerativeAIEmbeddings({
+/**
+ * Custom subclass of GoogleGenerativeAIEmbeddings that adds support for the
+ * outputDimensionality parameter in the JavaScript SDK, forcing the desired vector size.
+ */
+// @ts-ignore
+class GeminiEmbeddingsWithDimensions extends GoogleGenerativeAIEmbeddings {
+  outputDimensionality?: number;
+
+  constructor(fields: any) {
+    super(fields);
+    this.outputDimensionality = fields?.outputDimensionality;
+  }
+
+  // @ts-ignore
+  override _convertToContent(text: string) {
+    // @ts-ignore
+    const base = super._convertToContent(text);
+    return {
+      ...base,
+      outputDimensionality: this.outputDimensionality,
+    };
+  }
+}
+
+// Initialize Google GenAI Embeddings client using gemini-embedding-2 and forcing 1024 dimensions
+export const embeddingsClient = new GeminiEmbeddingsWithDimensions({
   apiKey: env.GOOGLE_API_KEY,
-  modelName: "text-embedding-004", // 768 dimensions
+  modelName: "gemini-embedding-2",
+  outputDimensionality: 1024,
 });
 
 /**

@@ -3,6 +3,7 @@ import { logger } from "../../utils/logger.js";
 import type {
   AgentDirectives,
   CounselorSignals,
+  GoalClassification,
   NormalizedGoal,
   ProfilePreferences,
   ProfileRisk,
@@ -88,17 +89,23 @@ export const profileService = {
   },
 
   /**
-   * Persists the synthesized profile details and audit log into the database inside a transaction.
+   * Persists the synthesized decision-grade profile details and audit log into the database inside a transaction.
    */
   async saveProfileSynthesis(
     goalId: string,
     learnerSummary: string,
     normalizedGoal: NormalizedGoal,
+    goalClassification: GoalClassification,
     skillBaseline: Record<string, string>,
     preferences: ProfilePreferences,
     weakAreas: string[],
     risks: ProfileRisk[],
-    agentDirectives: AgentDirectives
+    agentDirectives: AgentDirectives,
+    problemContext?: any,
+    constraints?: any,
+    learningPreferences?: any,
+    successCriteria?: any,
+    prerequisiteGaps?: string[]
   ) {
     logger.info(`[ProfileService] Saving profile synthesis for goal [${goalId}]`);
     return await db.$transaction(async (tx: any) => {
@@ -107,12 +114,18 @@ export const profileService = {
         data: {
           learnerSummary,
           normalizedGoal: normalizedGoal as any,
+          goalClassification: goalClassification as any,
           skillBaseline: skillBaseline as any,
           learningStyle: preferences.learningStyle,
           preferences: preferences as any,
           weakAreas,
           risks: risks as any,
           agentDirectives: agentDirectives as any,
+          problemContext: (problemContext || {}) as any,
+          constraints: (constraints || {}) as any,
+          learningPreferences: (learningPreferences || preferences || {}) as any,
+          successCriteria: (successCriteria || {}) as any,
+          prerequisiteGaps: prerequisiteGaps || [],
         },
       });
 
@@ -120,7 +133,7 @@ export const profileService = {
         data: {
           lessonId: null,
           agentName: "Profiler",
-          message: `Learner profile compiled successfully. Preferred style: ${preferences.learningStyle}. Key weak areas: ${weakAreas.join(", ")}`,
+          message: `Learner profile compiled successfully. Scope: ${goalClassification.scope}; flow: ${goalClassification.recommendedFlow}; paid=${goalClassification.requiresPaidPlan}. Preferred style: ${preferences.learningStyle}. Prerequisite gaps: ${(prerequisiteGaps || []).join(", ") || "None"}. Key weak areas: ${weakAreas.join(", ")}`,
           level: "INFO",
         },
       });

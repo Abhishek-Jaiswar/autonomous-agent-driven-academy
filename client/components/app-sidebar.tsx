@@ -25,6 +25,10 @@ import {
   ShieldCheck,
   Settings2,
   CircleHelp,
+  Sparkles,
+  FolderKanban,
+  BarChart3,
+  Gem,
 } from "lucide-react"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -44,19 +48,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navMain = [
     {
-      title: "Academy Overview",
+      title: "Dashboard",
       url: "/dashboard",
       icon: <LayoutDashboard />,
+    },
+    {
+      title: "Quick Start",
+      url: "/dashboard/quickstart",
+      icon: <Sparkles />,
+    },
+    {
+      title: "My Workspaces",
+      url: "/dashboard/projects",
+      icon: <FolderKanban />,
+    },
+    {
+      title: "Analytics & Progress",
+      url: "/dashboard/analytics",
+      icon: <BarChart3 />,
+    },
+    {
+      title: "Pricing & Pro (₹)",
+      url: "/dashboard/pricing",
+      icon: <Gem />,
+    },
+  ]
+
+  const navWorkspace = [
+    {
+      title: "AI Classroom",
+      url: "/dashboard/classroom",
+      icon: <BookOpen />,
     },
     {
       title: "Curriculum Map",
       url: "/dashboard/curriculum",
       icon: <Compass />,
-    },
-    {
-      title: "AI Classroom",
-      url: "/dashboard/classroom",
-      icon: <BookOpen />,
     },
     {
       title: "SourceTrust Board",
@@ -87,12 +114,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:p-1.5!"
               render={<Link href="/dashboard" />}
             >
-              <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-white mr-1.5 shrink-0 shadow-md">
-                <GraduationCap className="size-5" />
+              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-primary mr-1.5 shrink-0 shadow-md">
+                <GraduationCap className="size-8 text-secondary" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
-                <span className="text-sm font-bold text-slate-100">AstraLearn AI</span>
-                <span className="text-[10px] text-slate-400 font-mono">Agentic Academy</span>
+                <span className="text-sm font-bold ">AstraLearn AI</span>
+                <span className="text-[10px] font-mono">Agentic Academy</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -100,6 +127,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navMain} />
+        <div className="px-3 pt-4">
+          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground px-2 pb-1">
+            Active Workspace
+          </div>
+          <NavMain items={navWorkspace} />
+        </div>
         <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>

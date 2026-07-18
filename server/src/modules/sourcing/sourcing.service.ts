@@ -4,6 +4,7 @@ import { db } from "../../config/database.js";
 import { pineconeIndex } from "../../config/pinecone.js";
 import { embeddingsClient } from "../../utils/embeddings.js";
 import { sourceTrustVerificationPrompt } from "../../llm/prompts/source-verifier/source-verifier.prompt.js";
+import { librarianQueryPrompt } from "../../llm/prompts/librarian/librarian.prompt.js";
 import { logger } from "../../utils/logger.js";
 
 // Zod schema for structured Gemini SourceTrust evaluation outputs
@@ -52,45 +53,179 @@ const MOCK_RESOURCE_CONTENTS: Record<string, string> = {
   `,
 };
 
+const searchTermsSchema = z.object({
+  queries: z.array(z.string()).min(1).max(3).describe("Search terms/phrases for academic and documentation lookup"),
+});
+
+/**
+ * Dynamic content storage mapping URLs to their fetched HTML/text content
+ * so that they can be read during the vector indexing phase.
+ */
+const RETRIEVED_CONTENT_CACHE: Record<string, string> = {};
+
+/**
+ * Searches Wikipedia and returns the top matching page with its introductory text.
+ */
+async function fetchWikipediaResources(query: string): Promise<Array<{ title: string; url: string; type: string; content: string }>> {
+  try {
+    logger.info(`[Librarian] Querying Wikipedia search API for: "${query}"`);
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`;
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) return [];
+    
+    const searchData = (await searchRes.json()) as any;
+    const searchResults = searchData?.query?.search || [];
+    if (searchResults.length === 0) return [];
+
+    // Get the top result details
+    const topResult = searchResults[0];
+    const pageTitle = topResult.title;
+    const pageUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(pageTitle.replace(/ /g, "_"))}`;
+    
+    // Fetch summary text
+    logger.info(`[Librarian] Querying Wikipedia summary for page: "${pageTitle}"`);
+    const summaryUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&titles=${encodeURIComponent(pageTitle)}&format=json&origin=*`;
+    const summaryRes = await fetch(summaryUrl);
+    if (!summaryRes.ok) return [];
+    
+    const summaryData = (await summaryRes.json()) as any;
+    const pages = summaryData?.query?.pages || {};
+    const pageId = Object.keys(pages)[0];
+    const extractText = pageId ? pages[pageId]?.extract || "" : "";
+    
+    if (!extractText) return [];
+    
+    RETRIEVED_CONTENT_CACHE[pageUrl] = extractText;
+    
+    return [{
+      title: `Wikipedia: ${pageTitle}`,
+      url: pageUrl,
+      type: "official_doc",
+      content: extractText,
+    }];
+  } catch (error) {
+    logger.error(`[Librarian] Failed to fetch Wikipedia resources for query "${query}"`, { error });
+    return [];
+  }
+}
+
+/**
+ * Searches arXiv XML API and returns matching papers.
+ */
+async function fetchArxivResources(query: string): Promise<Array<{ title: string; url: string; type: string; content: string }>> {
+  try {
+    logger.info(`[Librarian] Querying arXiv search API for: "${query}"`);
+    const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=2`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    
+    const xmlText = await res.text();
+    const entries: Array<{ title: string; url: string; type: string; content: string }> = [];
+    
+    // Simple regex parsing of the Atom XML feed to avoid third-party parser dependencies
+    const entryRegex = /<entry>([\s\S]*?)<\/entry>/g;
+    let match;
+    while ((match = entryRegex.exec(xmlText)) !== null) {
+      const entryContent = match[1];
+      if (!entryContent) continue;
+      const titleMatch = entryContent.match(/<title>([\s\S]*?)<\/title>/);
+      const summaryMatch = entryContent.match(/<summary>([\s\S]*?)<\/summary>/);
+      const idMatch = entryContent.match(/<id>([\s\S]*?)<\/id>/);
+      
+      if (titleMatch && titleMatch[1] && summaryMatch && summaryMatch[1] && idMatch && idMatch[1]) {
+        const paperTitle = titleMatch[1].replace(/\s+/g, " ").trim();
+        const abstract = summaryMatch[1].replace(/\s+/g, " ").trim();
+        const paperUrl = idMatch[1].trim();
+        
+        RETRIEVED_CONTENT_CACHE[paperUrl] = abstract;
+        
+        entries.push({
+          title: `arXiv Paper: ${paperTitle}`,
+          url: paperUrl,
+          type: "lecture", // Fits university/academic category
+          content: abstract,
+        });
+      }
+    }
+    
+    return entries;
+  } catch (error) {
+    logger.error(`[Librarian] Failed to fetch arXiv resources for query "${query}"`, { error });
+    return [];
+  }
+}
+
 export const sourcingService = {
   /**
-   * Librarian Agent: Formulates and discovers candidate resources based on goal and profile.
+   * Librarian Agent: Formulates and discovers candidate resources dynamically based on goal and profile.
    */
-  async discoverCandidateResources(goalText: string, _category: string, _weakAreas: string[]) {
+  async discoverCandidateResources(goalText: string, category: string, weakAreas: string[]) {
     logger.info(`[Librarian] Discovering candidates for goal: "${goalText}"`);
 
-    // In a production setup, we would fetch from Google Search / Wikipedia / arXiv APIs.
-    // For our robust prototype, we serve a pre-filtered list of candidate links matching the goal domain.
-    const candidates = [
-      {
-        title: "OpenAI Embeddings Documentation",
-        url: "https://platform.openai.com/docs/guides/embeddings",
-        type: "official_doc",
-      },
-      {
-        title: "Pinecone Vector Database Getting Started",
-        url: "https://docs.pinecone.io/guides/get-started/overview",
-        type: "official_doc",
-      },
-      {
-        title: "Stanford CS224N Lecture on Vector Semantic Models",
-        url: "https://web.stanford.edu/class/cs224n/slides/cs224n-lecture11.pdf",
-        type: "slide",
-      },
-      {
-        title: "Medium Blog: Build a RAG app in 5 minutes",
-        url: "https://medium.com/@randomdev/build-rag-in-5-mins",
-        type: "blog",
-      },
-      {
-        title: "Outdated TensorFlow 1.x Deep Learning Tutorial",
-        url: "https://tensorflow.org/versions/r1.15/get_started",
-        type: "official_doc",
-      },
-    ];
+    // 1. Generate search terms using LLM
+    const structuredLlm = llm.withStructuredOutput(searchTermsSchema);
+    const formattedPrompt = await librarianQueryPrompt.format({
+      goalText,
+      category,
+      weakAreasList: weakAreas.length > 0 ? weakAreas.join(", ") : "none",
+    });
+    
+    let searchQueries: string[] = [goalText];
+    try {
+      const llmResult = await structuredLlm.invoke(formattedPrompt);
+      if (llmResult && Array.isArray(llmResult.queries) && llmResult.queries.length > 0) {
+        searchQueries = llmResult.queries;
+        logger.info(`[Librarian] Generated queries: ${searchQueries.join(", ")}`);
+      }
+    } catch (err) {
+      logger.error("[Librarian] Failed to generate search queries via LLM. Using goal text as query.", { err });
+    }
 
-    logger.info(`[Librarian] Discovered ${candidates.length} candidate resources.`);
-    return candidates;
+    // 2. Query both APIs for each search query
+    const candidateList: Array<{ title: string; url: string; type: string }> = [];
+    
+    for (const query of searchQueries) {
+      // Wikipedia search
+      const wikiResults = await fetchWikipediaResources(query);
+      candidateList.push(...wikiResults.map(r => ({ title: r.title, url: r.url, type: r.type })));
+      
+      // arXiv search
+      const arxivResults = await fetchArxivResources(query);
+      candidateList.push(...arxivResults.map(r => ({ title: r.title, url: r.url, type: r.type })));
+      
+      // Sleep briefly to respect arXiv rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
+    // Fallback to mock resources if absolutely nothing was found
+    if (candidateList.length === 0) {
+      logger.warn("[Librarian] Live search returned 0 candidates. Falling back to pre-filtered RAG catalog.");
+      const fallbacks = [
+        {
+          title: "OpenAI Embeddings Documentation",
+          url: "https://platform.openai.com/docs/guides/embeddings",
+          type: "official_doc",
+        },
+        {
+          title: "Pinecone Vector Database Getting Started",
+          url: "https://docs.pinecone.io/guides/get-started/overview",
+          type: "official_doc",
+        },
+        {
+          title: "Stanford CS224N Lecture on Vector Semantic Models",
+          url: "https://web.stanford.edu/class/cs224n/slides/cs224n-lecture11.pdf",
+          type: "slide",
+        }
+      ];
+      // Seed fallback contents in the cache
+      RETRIEVED_CONTENT_CACHE["https://platform.openai.com/docs/guides/embeddings"] = MOCK_RESOURCE_CONTENTS["https://platform.openai.com/docs/guides/embeddings"] || "";
+      RETRIEVED_CONTENT_CACHE["https://docs.pinecone.io/guides/get-started/overview"] = MOCK_RESOURCE_CONTENTS["https://docs.pinecone.io/guides/get-started/overview"] || "";
+      RETRIEVED_CONTENT_CACHE["https://web.stanford.edu/class/cs224n/slides/cs224n-lecture11.pdf"] = MOCK_RESOURCE_CONTENTS["https://web.stanford.edu/class/cs224n/slides/cs224n-lecture11.pdf"] || "";
+      return fallbacks;
+    }
+
+    logger.info(`[Librarian] Discovered ${candidateList.length} candidate resources dynamically.`);
+    return candidateList;
   },
 
   /**
@@ -159,8 +294,8 @@ export const sourcingService = {
       return dbResource;
     }
 
-    // 3. Retrieve text content (fetches mock content summary)
-    const content = MOCK_RESOURCE_CONTENTS[resourceInput.url] || `Study guide for ${resourceInput.title}. Please refer to the official link at ${resourceInput.url}.`;
+    // 3. Retrieve text content (fetches dynamic summary from cache or fallback)
+    const content = RETRIEVED_CONTENT_CACHE[resourceInput.url || ""] || MOCK_RESOURCE_CONTENTS[resourceInput.url || ""] || `Study guide for ${resourceInput.title}. Please refer to the official link at ${resourceInput.url}.`;
 
     // 4. Split content into overlapping chunks
     const chunks = this.splitTextIntoChunks(content, 600, 100);

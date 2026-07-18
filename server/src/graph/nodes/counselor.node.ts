@@ -27,6 +27,13 @@ const counselorTurnSchema = z.object({
     domain: z.string().optional(),
     targetOutcome: z.string().optional(),
     deliverable: z.string().optional(),
+    scopeIntent: z
+      .enum(["concept", "topic", "lesson", "module", "course", "career_path", "project_path", "unknown"])
+      .optional(),
+    desiredFlow: z
+      .enum(["instant_answer", "mini_lesson", "roadmap", "starter_module", "full_course", "project_plan", "unknown"])
+      .optional(),
+    realWorldUseCase: z.string().optional(),
     timelinePressure: z.enum(["low", "medium", "high", "unknown"]).optional(),
     baselineHints: z.array(signalSchema),
     constraints: z.array(signalSchema),

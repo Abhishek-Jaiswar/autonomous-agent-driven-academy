@@ -67,6 +67,27 @@ export type CounselorStage =
   | "review"
   | "complete";
 
+export type GoalScope =
+  | "concept"
+  | "topic"
+  | "lesson"
+  | "module"
+  | "course"
+  | "career_path"
+  | "project_path";
+
+export type GoalComplexity = "low" | "medium" | "high" | "very_high";
+
+export type TokenBudgetClass = "tiny" | "small" | "medium" | "large";
+
+export type RecommendedFlow =
+  | "instant_answer"
+  | "mini_lesson"
+  | "roadmap"
+  | "starter_module"
+  | "full_course"
+  | "project_plan";
+
 export interface CounselorSignal {
   label: string;
   value: string;
@@ -78,6 +99,9 @@ export interface CounselorSignals {
   domain?: string;
   targetOutcome?: string;
   deliverable?: string;
+  scopeIntent?: GoalScope | "unknown";
+  desiredFlow?: RecommendedFlow | "unknown";
+  realWorldUseCase?: string;
   timelinePressure?: "low" | "medium" | "high" | "unknown";
   baselineHints?: CounselorSignal[];
   constraints?: CounselorSignal[];
@@ -91,6 +115,48 @@ export interface ProfileRisk {
   note: string;
 }
 
+export interface GoalClassification {
+  scope: GoalScope;
+  complexity: GoalComplexity;
+  estimatedDurationDays: number;
+  tokenBudgetClass: TokenBudgetClass;
+  requiresPaidPlan: boolean;
+  recommendedFlow: RecommendedFlow;
+  shouldAskClarifyingQuestions: boolean;
+  reasoning: string;
+}
+
+export interface ProblemContext {
+  whyNow?: string;
+  realWorldUseCase?: string;
+  targetProject?: string;
+  jobRole?: string;
+  successScenario?: string;
+}
+
+export interface LearnerConstraints {
+  dailyTimeMinutes?: number;
+  schedulePattern?: "weekday" | "weekend" | "irregular";
+  deviceAccess?: string[];
+  budget?: "free_only" | "low" | "paid_ok";
+}
+
+export interface LearningPreferences {
+  explanationDepth?: "simple" | "medium" | "deep";
+  practiceBias?: "theory_first" | "build_first" | "mixed";
+  feedbackStyle?: "direct" | "encouraging" | "socratic";
+  preferredArtifacts?: string[];
+  learningStyle?: "visual" | "practical" | "text" | "balanced";
+  dailyTimeCommitment?: string;
+  assessmentMode?: "quiz" | "project" | "mixed";
+}
+
+export interface SuccessCriteria {
+  finalDeliverable?: string;
+  measurableOutcomes?: string[];
+  evaluationMethod?: "quiz" | "project" | "portfolio" | "exam" | "interview";
+}
+
 export interface LearnerProfileReview {
   learnerSummary?: string;
   normalizedGoal?: {
@@ -100,6 +166,12 @@ export interface LearnerProfileReview {
     deliverable?: string;
     durationDays?: number;
   };
+  goalClassification?: GoalClassification;
+  problemContext?: ProblemContext;
+  constraints?: LearnerConstraints;
+  learningPreferences?: LearningPreferences;
+  successCriteria?: SuccessCriteria;
+  prerequisiteGaps?: string[];
   skillBaseline?: Record<string, string>;
   learningStyle?: "visual" | "practical" | "text" | "balanced";
   preferences?: {

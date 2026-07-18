@@ -28,7 +28,7 @@ export function CounselorStageRail({ currentStage }: CounselorStageRailProps) {
               isActive
                 ? "border-primary bg-primary/10"
                 : "border-border bg-primary-foreground",
-              isDone && "border-green-900/40 bg-green-950/10",
+              isDone && "border-green-900/70 bg-green-400/10",
             )}
           >
             <div className="mt-0.5">

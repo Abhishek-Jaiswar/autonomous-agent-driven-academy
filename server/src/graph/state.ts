@@ -25,6 +25,9 @@ export interface CounselorSignals {
   domain?: string | undefined;
   targetOutcome?: string | undefined;
   deliverable?: string | undefined;
+  scopeIntent?: GoalScope | "unknown" | undefined;
+  desiredFlow?: RecommendedFlow | "unknown" | undefined;
+  realWorldUseCase?: string | undefined;
   timelinePressure?: "low" | "medium" | "high" | "unknown" | undefined;
   baselineHints: CounselorSignal[];
   constraints: CounselorSignal[];
@@ -56,6 +59,69 @@ export interface NormalizedGoal {
   durationDays: number;
 }
 
+export type GoalScope =
+  | "concept"
+  | "topic"
+  | "lesson"
+  | "module"
+  | "course"
+  | "career_path"
+  | "project_path";
+
+export type GoalComplexity = "low" | "medium" | "high" | "very_high";
+
+export type TokenBudgetClass = "tiny" | "small" | "medium" | "large";
+
+export type RecommendedFlow =
+  | "instant_answer"
+  | "mini_lesson"
+  | "roadmap"
+  | "starter_module"
+  | "full_course"
+  | "project_plan";
+
+export interface GoalClassification {
+  scope: GoalScope;
+  complexity: GoalComplexity;
+  estimatedDurationDays: number;
+  tokenBudgetClass: TokenBudgetClass;
+  requiresPaidPlan: boolean;
+  recommendedFlow: RecommendedFlow;
+  shouldAskClarifyingQuestions: boolean;
+  reasoning: string;
+}
+
+export interface ProblemContext {
+  whyNow?: string | undefined;
+  realWorldUseCase?: string | undefined;
+  targetProject?: string | undefined;
+  jobRole?: string | undefined;
+  successScenario?: string | undefined;
+}
+
+export interface LearnerConstraints {
+  dailyTimeMinutes?: number | undefined;
+  schedulePattern?: "weekday" | "weekend" | "irregular" | undefined;
+  deviceAccess?: string[] | undefined;
+  budget?: "free_only" | "low" | "paid_ok" | undefined;
+}
+
+export interface LearningPreferences {
+  explanationDepth?: "simple" | "medium" | "deep" | undefined;
+  practiceBias?: "theory_first" | "build_first" | "mixed" | undefined;
+  feedbackStyle?: "direct" | "encouraging" | "socratic" | undefined;
+  preferredArtifacts?: string[] | undefined;
+  learningStyle?: "visual" | "practical" | "text" | "balanced" | undefined;
+  dailyTimeCommitment?: string | undefined;
+  assessmentMode?: "quiz" | "project" | "mixed" | undefined;
+}
+
+export interface SuccessCriteria {
+  finalDeliverable?: string | undefined;
+  measurableOutcomes?: string[] | undefined;
+  evaluationMethod?: "quiz" | "project" | "portfolio" | "exam" | "interview" | undefined;
+}
+
 export interface ProfilePreferences {
   learningStyle: "visual" | "practical" | "text" | "balanced";
   dailyTimeCommitment?: string | undefined;
@@ -76,6 +142,12 @@ export interface LearnerProfileData {
   goalText: string;
   learnerSummary: string;
   normalizedGoal: NormalizedGoal;
+  goalClassification: GoalClassification;
+  problemContext?: ProblemContext | undefined;
+  constraints?: LearnerConstraints | undefined;
+  learningPreferences?: LearningPreferences | undefined;
+  successCriteria?: SuccessCriteria | undefined;
+  prerequisiteGaps: string[];
   skillBaseline: Record<string, string>; // e.g. { Python: "intermediate", GenAI: "beginner" }
   preferences: ProfilePreferences;
   learningStyle: "visual" | "practical" | "text" | "balanced";
@@ -88,6 +160,17 @@ const emptyCounselorSignals = (): CounselorSignals => ({
   baselineHints: [],
   constraints: [],
   preferences: [],
+});
+
+export const defaultGoalClassification = (): GoalClassification => ({
+  scope: "topic",
+  complexity: "medium",
+  estimatedDurationDays: 7,
+  tokenBudgetClass: "small",
+  requiresPaidPlan: false,
+  recommendedFlow: "mini_lesson",
+  shouldAskClarifyingQuestions: true,
+  reasoning: "Default classification until the Profiler compiles the learner model.",
 });
 
 export const SchoolStateAnnotation = Annotation.Root({
@@ -183,6 +266,8 @@ export const SchoolStateAnnotation = Annotation.Root({
         targetOutcome: "",
         durationDays: 0,
       },
+      goalClassification: defaultGoalClassification(),
+      prerequisiteGaps: [],
       skillBaseline: {},
       preferences: {
         learningStyle: "balanced",

@@ -72,22 +72,22 @@ export function NavUser({
               {user.avatar ? (
                 <AvatarImage src={user.avatar} alt={user.name} />
               ) : null}
-              <AvatarFallback className="rounded-lg bg-violet-950/30 text-violet-400 font-bold border border-violet-800/30">
+              <AvatarFallback className="rounded-lg bg-primary text-secondary font-bold border border-border">
                 {initials}
               </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-semibold text-slate-200">
+              <span className="truncate font-semibold ">
                 {user.name}
               </span>
-              <span className="truncate text-xs text-slate-400">
+              <span className="truncate text-xs ">
                 {user.email}
               </span>
             </div>
-            <EllipsisVerticalIcon className="ml-auto size-4 text-slate-500" />
+            <EllipsisVerticalIcon className="ml-auto size-4 " />
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-56 bg-slate-950 border border-slate-900 text-slate-200"
+            className="min-w-56 border border-border"
             side={isMobile ? "bottom" : "right"}
             align="end"
             sideOffset={4}
@@ -99,15 +99,15 @@ export function NavUser({
                     {user.avatar ? (
                       <AvatarImage src={user.avatar} alt={user.name} />
                     ) : null}
-                    <AvatarFallback className="rounded-lg bg-violet-950/30 text-violet-400 font-bold">
+                    <AvatarFallback className="rounded-lg bg-primary text-secondary font-bold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold text-slate-200">
+                    <span className="truncate font-semibold">
                       {user.name}
                     </span>
-                    <span className="truncate text-xs text-slate-400">
+                    <span className="truncate text-xs ">
                       {user.email}
                     </span>
                   </div>

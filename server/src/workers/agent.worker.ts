@@ -2,8 +2,9 @@ import { Worker, type Job } from "bullmq";
 import { bullRedisConnectionOpts } from "../config/redis.js";
 import { db } from "../config/database.js";
 import { emitToSession } from "../config/socket.js";
-import { sourcingService } from "../modules/sourcing/sourcing.service.js";
 import { JOBS, QUEUES } from "../config/queue.js";
+import { sourcingService } from "../modules/sourcing/sourcing.service.js";
+import { curriculumService } from "../modules/curriculum/curriculum.service.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -14,7 +15,63 @@ export const agentWorker = new Worker(
   async (job: Job) => {
     logger.info(`[AgentWorker] Processing job [${job.id}] — Type: ${job.name}`);
 
-    if (job.name === JOBS.GENERATE_CURRICULUM) {
+    if (job.name === JOBS.GENERATE_MINI_LESSON) {
+      const { goalId } = job.data;
+      logger.info(`[AgentWorker] Executing Instant Mini-Lesson workflow for goal [${goalId}]`);
+
+      emitToSession(goalId, "agent-log", {
+        agentName: "ScopeRouter",
+        message: "Scope Router assigned Instant Concept / Mini-Lesson flow. Bypassing heavy vector indexing.",
+        level: "INFO",
+      });
+
+      // 1. Build single-lesson syllabus
+      emitToSession(goalId, "agent-log", {
+        agentName: "CurriculumArchitect",
+        message: "Building mini-lesson syllabus...",
+        level: "INFO",
+      });
+
+      const lesson = await curriculumService.generateMiniLessonSyllabus(goalId);
+
+      // 2. Pre-generate Teacher content, Visual Explainer diagram, and Examiner quiz
+      emitToSession(goalId, "agent-log", {
+        agentName: "TeacherAgent",
+        message: "Pre-generating textbook guide, Mermaid diagram, and knowledge check...",
+        level: "INFO",
+      });
+
+      await curriculumService.autoFulfillMiniLesson(goalId, lesson.id);
+
+      emitToSession(goalId, "agent-log", {
+        agentName: "System",
+        message: "Instant concept lesson ready! Open classroom to view.",
+        level: "INFO",
+      });
+      return;
+    }
+
+    if (job.name === JOBS.GENERATE_PREVIEW_ROADMAP) {
+      const { goalId } = job.data;
+      logger.info(`[AgentWorker] Executing Free Preview Roadmap workflow for goal [${goalId}]`);
+
+      emitToSession(goalId, "agent-log", {
+        agentName: "PlanGate",
+        message: "Broad goal scope requires Pro plan. Generating Free Preview Roadmap (Starter Lesson unlocked)...",
+        level: "INFO",
+      });
+
+      await curriculumService.generatePreviewRoadmap(goalId);
+
+      emitToSession(goalId, "agent-log", {
+        agentName: "System",
+        message: "Free Roadmap Preview ready! Starter lesson unlocked. Upgrade to Pro (₹499/mo) for full multi-month coaching.",
+        level: "INFO",
+      });
+      return;
+    }
+
+    if (job.name === JOBS.GENERATE_MODULE || job.name === JOBS.GENERATE_CURRICULUM) {
       const { goalId } = job.data;
 
       // 1. Fetch Goal and Profile details
@@ -42,14 +99,19 @@ export const agentWorker = new Worker(
         goal.profile.weakAreas
       );
 
+      // Limit resource candidates if single module scope
+      const selectedCandidates = job.name === JOBS.GENERATE_MODULE
+        ? candidates.slice(0, 3)
+        : candidates;
+
       emitToSession(goalId, "agent-log", {
         agentName: "SourceVerifier",
-        message: `Discovered ${candidates.length} potential documents. Running SourceTrust heuristics checks...`,
+        message: `Discovered ${selectedCandidates.length} potential documents. Running SourceTrust heuristics checks...`,
         level: "INFO",
       });
 
       // 3. Evaluate credibilities (Source Verifier / SourceTrust)
-      const evaluated = await sourcingService.verifyCandidateResources(candidates);
+      const evaluated = await sourcingService.verifyCandidateResources(selectedCandidates);
 
       // 4. Chunk, embed, index, and save resources
       for (const item of evaluated) {
@@ -70,7 +132,27 @@ export const agentWorker = new Worker(
 
       logger.info(`[AgentWorker] Completed Sourcing & Filtering pipeline for goal [${goalId}]`);
       
-      // TODO: Handoff to Phase 4 (Syllabus Architecture) once Curriculum Architect is built.
+      // 5. Call Curriculum Architect Agent to build syllabus
+      emitToSession(goalId, "agent-log", {
+        agentName: "CurriculumArchitect",
+        message: "Curriculum Architect Agent starting syllabus compilation...",
+        level: "INFO",
+      });
+      await curriculumService.generateSyllabus(goalId);
+
+      // 6. Call Schedule Planner Agent to chronological-schedule and unlock first lesson
+      emitToSession(goalId, "agent-log", {
+        agentName: "SchedulePlanner",
+        message: "Schedule Planner Agent mapping calendar roadmap...",
+        level: "INFO",
+      });
+      await curriculumService.scheduleSyllabus(goalId);
+
+      emitToSession(goalId, "agent-log", {
+        agentName: "System",
+        message: "Curriculum generated and scheduled! Ready to start learning.",
+        level: "INFO",
+      });
     }
   },
   {

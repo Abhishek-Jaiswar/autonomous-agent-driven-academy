@@ -32,6 +32,7 @@ function buildInterviewPayload(profile: any, isComplete?: boolean) {
     profile: {
       learnerSummary: profile.learnerSummary,
       normalizedGoal: profile.normalizedGoal,
+      goalClassification: profile.goalClassification,
       skillBaseline: profile.skillBaseline,
       learningStyle: profile.learningStyle,
       preferences: profile.preferences,
@@ -338,6 +339,96 @@ export async function getInterviewStatus(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: "Internal server error while retrieving interview status",
+    });
+  }
+}
+
+/**
+ * GET /curriculum/projects
+ * Fetches all user projects/goals with progress calculations.
+ */
+export async function getUserProjectsHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const projects = await curriculumService.getUserProjects(authReq.user.id);
+    res.status(200).json({
+      success: true,
+      data: projects,
+    });
+  } catch (error) {
+    logger.error("[CurriculumController] Failed to fetch user projects", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while fetching user projects",
+    });
+  }
+}
+
+/**
+ * GET /curriculum/analytics
+ * Returns overall learning analytics across all user projects.
+ */
+export async function getUserAnalyticsHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const analytics = await curriculumService.getUserAnalytics(authReq.user.id);
+    res.status(200).json({
+      success: true,
+      data: analytics,
+    });
+  } catch (error) {
+    logger.error("[CurriculumController] Failed to fetch user analytics", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while fetching user analytics",
+    });
+  }
+}
+
+/**
+ * DELETE /curriculum/project/:goalId
+ * Deletes a project and all associated records for the user.
+ */
+export async function deleteProjectHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId } = req.params;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID is required" });
+      return;
+    }
+
+    await curriculumService.deleteUserProject(authReq.user.id, goalId as string);
+    res.status(200).json({
+      success: true,
+      message: "Project deleted successfully",
+    });
+  } catch (error) {
+    logger.error("[CurriculumController] Failed to delete project", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while deleting project",
     });
   }
 }

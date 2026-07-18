@@ -3,6 +3,7 @@ import { Server, Socket } from "socket.io";
 import { logger } from "../utils/logger.js";
 import { runSchoolGraph } from "../graph/school.graph.js";
 import { profileService } from "../modules/profile/profile.service.js";
+import { teacherService } from "../modules/teacher/teacher.service.js";
 
 // Global Socket.io Server instance placeholder
 export let io: Server | null = null;
@@ -182,6 +183,35 @@ export function initSocketServer(httpServer: HttpServer): Server {
           error: error instanceof Error ? error.message : String(error),
         });
         socket.emit("interview-error", { message: "Failed to submit answer" });
+      }
+    });
+
+    // Handle student submitting a doubt in the AI Classroom
+    socket.on("submit-doubt", async ({ goalId, lessonId, doubt }: { goalId: string; lessonId: string; doubt: string }) => {
+      try {
+        if (!goalId || !lessonId || !doubt) return;
+
+        logger.info(`[Socket] Received student doubt for lessonId: ${lessonId} — "${doubt}"`);
+
+        // Emit doubt processing started
+        socket.emit("doubt-started", { doubt });
+
+        // Answer doubt using Scoped RAG
+        const result = await teacherService.answerStudentDoubt(goalId, lessonId, doubt);
+
+        // Emit final completed answer to the socket
+        socket.emit("doubt-completed", {
+          doubt,
+          answer: result.answer,
+          sources: result.sources,
+        });
+
+        logger.info(`[Socket] Dispatched doubt answer for lessonId: ${lessonId}`);
+      } catch (error) {
+        logger.error("Error in submit-doubt socket listener", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        socket.emit("doubt-error", { message: "Failed to resolve doubt" });
       }
     });
 
