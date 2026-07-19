@@ -31,13 +31,16 @@ const authSlice = createSlice({
   reducers: {
     setCredentials(
       state,
-      action: PayloadAction<{ user: User }>
+      action: PayloadAction<{ user: User; token?: string }>
     ) {
-      const { user } = action.payload;
+      const { user, token } = action.payload;
       state.user = user;
 
       if (typeof window !== "undefined") {
         localStorage.setItem("astralearn_user", JSON.stringify(user));
+        if (token) {
+          localStorage.setItem("astralearn_token", token);
+        }
       }
     },
     logout(state) {
@@ -45,6 +48,7 @@ const authSlice = createSlice({
 
       if (typeof window !== "undefined") {
         localStorage.removeItem("astralearn_user");
+        localStorage.removeItem("astralearn_token");
         localStorage.removeItem("astralearn_goal_id"); // Clean up session goal too
       }
     },

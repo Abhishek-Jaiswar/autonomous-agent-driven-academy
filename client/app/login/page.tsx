@@ -56,8 +56,11 @@ function LoginForm() {
 
     try {
       const res = await login({ email, password }).unwrap();
-      if (res.success && res.data?.user) {
-        dispatch(setCredentials({ user: res.data.user }));
+      const user = res.data?.user || res.user;
+      const token = res.data?.token || res.token;
+
+      if (res.success && user) {
+        dispatch(setCredentials({ user, token }));
         router.push("/dashboard");
       }
     } catch (err: any) {

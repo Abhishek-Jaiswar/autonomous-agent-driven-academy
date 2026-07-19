@@ -28,11 +28,24 @@ export async function signup(req: Request, res: Response) {
 
     const { email, password } = result.data;
     const user = await authService.registerUser(email, password);
+    const authData = await authService.authenticateUser(email, password);
+    const isProduction = process.env.NODE_ENV === "production";
+
+    // Set cookie containing the JWT token
+    res.cookie("token", authData.token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
 
     res.status(201).json({
       success: true,
       message: "User registered successfully",
-      data: user,
+      data: {
+        user: authData.user,
+        token: authData.token,
+      },
     });
   } catch (error) {
     logger.error("[AuthController] Signup error", {
@@ -78,6 +91,7 @@ export async function login(req: Request, res: Response) {
       message: "Authentication successful",
       data: {
         user: authData.user,
+        token: authData.token,
       },
     });
   } catch (error) {
