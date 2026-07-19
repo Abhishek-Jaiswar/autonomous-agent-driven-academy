@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc",
+    "render-build": "pnpm install && prisma generate && tsc",
+    "db:push": "prisma db push",
     "start": "node dist/server.js",
     "lint": "eslint src",
     "test": "echo \"Error: no test specified\" && exit 1"

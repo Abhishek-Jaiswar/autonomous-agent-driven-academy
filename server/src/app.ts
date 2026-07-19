@@ -24,10 +24,30 @@ import { logger } from "./utils/logger.js";
 export function createApp(): express.Application {
   const app = express();
 
+  // Trust first proxy (required for Render / cloud reverse proxies to pass HTTPS headers correctly)
+  app.set("trust proxy", 1);
+
   // ── Global Middleware ───────────────────────────────────────────────────────
+  const allowedOrigins = [
+    process.env["CLIENT_URL"],
+    "https://astra-ai-academy.vercel.app",
+    "http://localhost:3000",
+  ].filter(Boolean) as string[];
+
   app.use(
     cors({
-      origin: process.env["CLIENT_URL"] || "http://localhost:3000",
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+        if (!origin) return callback(null, true);
+        if (
+          allowedOrigins.includes(origin) ||
+          origin.endsWith(".vercel.app") ||
+          process.env["NODE_ENV"] !== "production"
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS policy error: Origin ${origin} not allowed`));
+      },
       credentials: true,
     })
   );

@@ -63,12 +63,13 @@ export async function login(req: Request, res: Response) {
 
     const { email, password } = result.data;
     const authData = await authService.authenticateUser(email, password);
+    const isProduction = process.env.NODE_ENV === "production";
 
     // Set cookie containing the JWT token
     res.cookie("token", authData.token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching JWT expiration)
     });
 
@@ -95,10 +96,12 @@ export async function login(req: Request, res: Response) {
  */
 export async function logout(req: Request, res: Response) {
   try {
+    const isProduction = process.env.NODE_ENV === "production";
+
     res.clearCookie("token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
     });
 
     res.status(200).json({

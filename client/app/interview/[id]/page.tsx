@@ -10,7 +10,7 @@ export default async function InterviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const serverUrl = process.env.SERVER_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  const serverUrl = process.env.NEXT_PUBLIC_API_URL ?? process.env.SERVER_URL ?? "https://autonomous-agent-driven-academy.onrender.com";
 
   let interview: InterviewState;
 

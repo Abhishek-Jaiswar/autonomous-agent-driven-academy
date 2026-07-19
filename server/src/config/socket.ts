@@ -14,8 +14,21 @@ export let io: Server | null = null;
 export function initSocketServer(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
-      origin: "*", // Restrict this in production to match frontend domain
+      origin: (requestOrigin, callback) => {
+        if (!requestOrigin) return callback(null, true);
+        if (
+          requestOrigin === process.env["CLIENT_URL"] ||
+          requestOrigin === "https://astra-ai-academy.vercel.app" ||
+          requestOrigin === "http://localhost:3000" ||
+          requestOrigin.endsWith(".vercel.app") ||
+          process.env["NODE_ENV"] !== "production"
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Socket CORS error: Origin ${requestOrigin} not allowed`));
+      },
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
