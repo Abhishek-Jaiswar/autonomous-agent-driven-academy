@@ -76,18 +76,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const completedLessons = analytics?.completedLessons || 0
   const hasCompletedLesson = completedLessons > 0
 
-  const user = auth.user
-    ? {
-        name: "Student Account",
-        email: auth.user.email,
-        avatar: "",
-      }
-    : {
-        name: "Guest Student",
-        email: "guest@astralearn.ai",
-        avatar: "",
-      }
-
   const navMain = [
     {
       title: "Dashboard Overview",
