@@ -39,10 +39,11 @@ import { useGetCurriculumQuery, useGetUserProjectsQuery, useGetUserAnalyticsQuer
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: meData } = useGetMeQuery()
-  const currentUser = meData?.data?.user || (meData?.data && "email" in meData.data ? meData.data : undefined) || meData?.user
+  const rawData = meData as any
+  const userEmail = typeof rawData?.data?.email === "string" ? rawData.data.email : (typeof rawData?.data?.user?.email === "string" ? rawData.data.user.email : "")
   const user = {
-    name: currentUser?.email?.split("@")[0] || "Student",
-    email: currentUser?.email || "learner@astralearn.ai",
+    name: userEmail ? userEmail.split("@")[0] : "Student",
+    email: userEmail || "learner@astralearn.ai",
     avatar: "/avatars/user.jpg",
   }
 
