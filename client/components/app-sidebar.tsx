@@ -44,7 +44,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const user = {
     name: userEmail ? userEmail.split("@")[0] : "Student",
     email: userEmail || "learner@astralearn.ai",
-    avatar: "/avatars/user.jpg",
+    avatar: "",
   }
 
   const [goalId, setGoalId] = useState<string | null>(null)
