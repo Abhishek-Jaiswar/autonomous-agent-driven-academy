@@ -39,7 +39,7 @@ import { useGetCurriculumQuery, useGetUserProjectsQuery, useGetUserAnalyticsQuer
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: meData } = useGetMeQuery()
-  const currentUser = meData?.data?.user || meData?.user
+  const currentUser = meData?.data?.user || (meData?.data && "email" in meData.data ? meData.data : undefined) || meData?.user
   const user = {
     name: currentUser?.email?.split("@")[0] || "Student",
     email: currentUser?.email || "learner@astralearn.ai",

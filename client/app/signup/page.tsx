@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignupMutation } from "@/store/api/auth/auth-api";
+import { useAppDispatch } from "@/store/hooks";
+import { setCredentials } from "@/store/slices/authSlice";
 
 export default function SignupPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,12 +43,25 @@ export default function SignupPage() {
 
     try {
       const res = await signup({ email, password }).unwrap();
-      if (res.success) {
+      const user = res?.data?.user || res?.user;
+      const token = res?.data?.token || res?.token;
+
+      if (res?.success && user) {
+        if (token) {
+          dispatch(setCredentials({ user, token }));
+        }
         router.push("/dashboard");
+      } else {
+        setValidationError(res?.message || "Registration failed. Please try again.");
       }
     } catch (err: any) {
       console.error("Signup failed:", err);
-      const msg = err?.data?.error || (typeof err?.error === "string" ? err.error : "") || "Internal server error. Please try again.";
+      const msg =
+        err?.data?.error ||
+        err?.data?.message ||
+        (typeof err?.error === "string" ? err.error : "") ||
+        err?.message ||
+        "Registration failed. Please try again.";
       setValidationError(msg);
     }
   }
@@ -55,8 +71,10 @@ export default function SignupPage() {
     validationError ||
     (apiError
       ? "data" in (apiError as object)
-        ? (apiError as any).data?.error || "Internal server error. Please try again."
-        : "Internal server error. Please try again."
+        ? (apiError as any).data?.error || (apiError as any).data?.message || "Registration failed. Please try again."
+        : typeof (apiError as any).error === "string"
+        ? (apiError as any).error
+        : "Registration failed. Please try again."
       : "");
 
   return (

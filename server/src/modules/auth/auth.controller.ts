@@ -152,6 +152,10 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
     res.status(200).json({
       success: true,
       data: {
+        user: {
+          id: req.user.id,
+          email: req.user.email,
+        },
         id: req.user.id,
         email: req.user.email,
       },

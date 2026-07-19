@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLoginMutation } from "@/store/api/auth/auth-api";
+import { useAppDispatch } from "@/store/hooks";
+import { setCredentials } from "@/store/slices/authSlice";
 
 function LoginForm() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
@@ -44,12 +47,25 @@ function LoginForm() {
 
     try {
       const res = await login({ email, password }).unwrap();
-      if (res.success) {
+      const user = res?.data?.user || res?.user;
+      const token = res?.data?.token || res?.token;
+
+      if (res?.success && user) {
+        if (token) {
+          dispatch(setCredentials({ user, token }));
+        }
         router.push("/dashboard");
+      } else {
+        setValidationError(res?.message || "Invalid email or password. Please try again.");
       }
     } catch (err: any) {
       console.error("Login failed:", err);
-      const msg = err?.data?.error || (typeof err?.error === "string" ? err.error : "") || "Internal server error. Please try again.";
+      const msg =
+        err?.data?.error ||
+        err?.data?.message ||
+        (typeof err?.error === "string" ? err.error : "") ||
+        err?.message ||
+        "Invalid email or password. Please try again.";
       setValidationError(msg);
     }
   }
@@ -59,8 +75,10 @@ function LoginForm() {
     validationError ||
     (apiError
       ? "data" in (apiError as object)
-        ? (apiError as any).data?.error || "Internal server error. Please try again."
-        : "Internal server error. Please try again."
+        ? (apiError as any).data?.error || (apiError as any).data?.message || "Authentication failed. Please try again."
+        : typeof (apiError as any).error === "string"
+        ? (apiError as any).error
+        : "Authentication failed. Please try again."
       : "");
 
   return (

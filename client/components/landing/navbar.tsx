@@ -21,7 +21,7 @@ const Navbar = () => {
   const { data: meData } = useGetMeQuery();
   const [logoutMutation] = useLogoutMutation();
 
-  const user = meData?.data?.user || meData?.user;
+  const user = meData?.data?.user || (meData?.data && "email" in meData.data ? meData.data : undefined) || meData?.user;
 
   async function handleLogout() {
     try {

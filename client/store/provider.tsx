@@ -25,7 +25,7 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     refetchOnMountOrArgChange: true,
   });
 
-  const user = data?.data?.user || data?.user;
+  const user = data?.data?.user || (data?.data && "email" in data.data ? data.data : undefined) || data?.user;
 
   // Route protection rules
   const isProtectedRoute = pathname?.startsWith("/dashboard") || pathname?.startsWith("/interview");
