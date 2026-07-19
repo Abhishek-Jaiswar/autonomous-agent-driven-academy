@@ -129,6 +129,7 @@ export interface GoalClassification {
   duration?: string;
   durationDays?: number;
   tokenBudgetClass?: TokenBudgetClass;
+  reasoning?: string;
   scope: GoalScope;
   complexity: GoalComplexity;
   recommendedFlow: RecommendedFlow;
@@ -144,12 +145,15 @@ export interface LearnerProfileReview {
   learningStyle?: string;
   normalizedGoal?: GoalClassification;
   goalClassification?: GoalClassification;
-  problemContext?: string;
+  problemContext?: any;
+  prerequisiteGaps?: string[];
   constraints?: string[];
   preferences?: {
     learningStyle?: string;
     assessmentMode?: "quiz" | "project" | "mixed";
+    dailyTimeCommitment?: string;
   };
+  learningPreferences?: any;
   weakAreas?: string[];
   risks?: ProfileRisk[];
   agentDirectives?: {

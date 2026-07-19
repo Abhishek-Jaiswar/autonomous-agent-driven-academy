@@ -19,8 +19,9 @@ function AuthPersist({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    if (isSuccess && data?.success) {
-      dispatch(setCredentials({ user: data.data }));
+    const userObj = data?.data?.user || data?.user;
+    if (isSuccess && userObj) {
+      dispatch(setCredentials({ user: userObj }));
     } else if (error) {
       dispatch(logout());
     }
