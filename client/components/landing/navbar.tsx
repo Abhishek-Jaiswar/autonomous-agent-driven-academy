@@ -61,7 +61,7 @@ const Navbar = () => {
                 <DropdownMenuTrigger className="rounded-full focus:outline-none cursor-pointer">
                   <Avatar className="w-8 h-8 border border-border">
                     <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-semibold">
-                      {user.email.slice(0, 2).toUpperCase()}
+                      {(user.name?.[0] || user.email?.[0] || "U").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>

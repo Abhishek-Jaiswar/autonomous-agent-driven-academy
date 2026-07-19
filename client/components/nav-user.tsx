@@ -6,7 +6,6 @@ import { useDispatch } from "react-redux"
 import {
   Avatar,
   AvatarFallback,
-  AvatarImage,
 } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -39,7 +38,7 @@ export function NavUser({
   user: {
     name: string
     email: string
-    avatar: string
+    avatar?: string
   }
 }) {
   const { isMobile } = useSidebar()
@@ -57,7 +56,7 @@ export function NavUser({
     router.push("/")
   }
 
-  const initials = user.email.slice(0, 2).toUpperCase() || "ST"
+  const initial = (user.name?.[0] || user.email?.[0] || "U").toUpperCase()
 
   return (
     <SidebarMenu>
@@ -69,11 +68,8 @@ export function NavUser({
             }
           >
             <Avatar className="size-8 rounded-lg">
-              {user.avatar ? (
-                <AvatarImage src={user.avatar} alt={user.name} />
-              ) : null}
-              <AvatarFallback className="rounded-lg bg-primary text-secondary font-bold border border-border">
-                {initials}
+              <AvatarFallback className="rounded-lg bg-primary text-primary-foreground font-bold border border-border">
+                {initial}
               </AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -96,11 +92,8 @@ export function NavUser({
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                   <Avatar className="size-8 rounded-lg">
-                    {user.avatar ? (
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                    ) : null}
-                    <AvatarFallback className="rounded-lg bg-primary text-secondary font-bold">
-                      {initials}
+                    <AvatarFallback className="rounded-lg bg-primary text-primary-foreground font-bold">
+                      {initial}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
