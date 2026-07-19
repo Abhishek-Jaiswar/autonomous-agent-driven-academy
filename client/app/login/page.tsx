@@ -3,20 +3,15 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
 import { BrainCircuit, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLoginMutation } from "@/store/api/auth/auth-api";
-import { setCredentials } from "@/store/slices/authSlice";
-import type { RootState } from "@/store/store";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,13 +19,6 @@ function LoginForm() {
   const [signupSuccess, setSignupSuccess] = useState(false);
 
   const [login, { isLoading, error: apiError }] = useLoginMutation();
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      router.push("/dashboard");
-    }
-  }, [user, router]);
 
   // Check if redirected from a successful signup
   useEffect(() => {
@@ -56,11 +44,7 @@ function LoginForm() {
 
     try {
       const res = await login({ email, password }).unwrap();
-      const user = res.data?.user || res.user;
-      const token = res.data?.token || res.token;
-
-      if (res.success && user) {
-        dispatch(setCredentials({ user, token }));
+      if (res.success) {
         router.push("/dashboard");
       }
     } catch (err: any) {

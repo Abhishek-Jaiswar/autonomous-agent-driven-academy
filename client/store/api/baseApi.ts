@@ -5,15 +5,6 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://autonomous-agent-driven-academy.onrender.com",
     credentials: "include",
-    prepareHeaders: (headers) => {
-      if (typeof window !== "undefined") {
-        const token = localStorage.getItem("astralearn_token");
-        if (token) {
-          headers.set("Authorization", `Bearer ${token}`);
-        }
-      }
-      return headers;
-    },
   }),
   tagTypes: ["User", "Curriculum"],
   endpoints: () => ({}),

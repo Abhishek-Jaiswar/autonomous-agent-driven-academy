@@ -1,21 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
 import { BrainCircuit, Mail, Lock, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignupMutation } from "@/store/api/auth/auth-api";
-import { setCredentials } from "@/store/slices/authSlice";
-import type { RootState } from "@/store/store";
 
 export default function SignupPage() {
   const router = useRouter();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,13 +18,6 @@ export default function SignupPage() {
   const [validationError, setValidationError] = useState("");
 
   const [signup, { isLoading, error: apiError }] = useSignupMutation();
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (user) {
-      router.push("/dashboard");
-    }
-  }, [user, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,16 +40,8 @@ export default function SignupPage() {
 
     try {
       const res = await signup({ email, password }).unwrap();
-      const user = res.data?.user || res.user;
-      const token = res.data?.token || res.token;
-
       if (res.success) {
-        if (user && token) {
-          dispatch(setCredentials({ user, token }));
-          router.push("/dashboard");
-        } else {
-          router.push("/login?signup=success");
-        }
+        router.push("/dashboard");
       }
     } catch (err: any) {
       console.error("Signup failed:", err);

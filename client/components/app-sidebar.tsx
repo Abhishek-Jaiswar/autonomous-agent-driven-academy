@@ -3,9 +3,6 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useSelector } from "react-redux"
-
-import type { RootState } from "@/store/store"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
@@ -38,10 +35,16 @@ import {
   CheckCircle,
 } from "lucide-react"
 
-import { useGetCurriculumQuery, useGetUserProjectsQuery, useGetUserAnalyticsQuery } from "@/store/api/auth/auth-api"
+import { useGetCurriculumQuery, useGetUserProjectsQuery, useGetUserAnalyticsQuery, useGetMeQuery } from "@/store/api/auth/auth-api"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const auth = useSelector((state: RootState) => state.auth)
+  const { data: meData } = useGetMeQuery()
+  const currentUser = meData?.data?.user || meData?.user
+  const user = {
+    name: currentUser?.email?.split("@")[0] || "Student",
+    email: currentUser?.email || "learner@astralearn.ai",
+    avatar: "/avatars/user.jpg",
+  }
 
   const [goalId, setGoalId] = useState<string | null>(null)
   const { data: userProjectsData } = useGetUserProjectsQuery()

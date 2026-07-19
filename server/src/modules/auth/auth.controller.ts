@@ -36,6 +36,7 @@ export async function signup(req: Request, res: Response) {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      partitioned: isProduction,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -83,6 +84,7 @@ export async function login(req: Request, res: Response) {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      partitioned: isProduction,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matching JWT expiration)
     });
 
@@ -116,6 +118,7 @@ export async function logout(req: Request, res: Response) {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
+      partitioned: isProduction,
     });
 
     res.status(200).json({

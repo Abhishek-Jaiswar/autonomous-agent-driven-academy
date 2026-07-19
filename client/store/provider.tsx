@@ -1,36 +1,52 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Provider, useDispatch } from "react-redux";
+import { Provider } from "react-redux";
+import { usePathname, useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
+
 import { store } from "./store";
 import { useGetMeQuery } from "./api/auth/auth-api";
-import { setCredentials, logout } from "./slices/authSlice";
 
 interface ReduxProviderProps {
   children: React.ReactNode;
 }
 
-function AuthPersist({ children }: { children: React.ReactNode }) {
-  const dispatch = useDispatch();
-  
-  // Call /auth/me on application load
-  const { data, error, isLoading, isSuccess } = useGetMeQuery(undefined, {
+/**
+ * AuthWrapper: Global Application Authentication Guard
+ * Uses RTK Query (useGetMeQuery) to fetch fresh user data via cookie credentials.
+ */
+function AuthWrapper({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Fetch current user via cookie credentials
+  const { data, isLoading, isError } = useGetMeQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
 
-  useEffect(() => {
-    const userObj = data?.data?.user || data?.user;
-    if (isSuccess && userObj) {
-      dispatch(setCredentials({ user: userObj }));
-    } else if (error) {
-      dispatch(logout());
-    }
-  }, [data, error, isSuccess, dispatch]);
+  const user = data?.data?.user || data?.user;
 
-  if (isLoading) {
+  // Route protection rules
+  const isProtectedRoute = pathname?.startsWith("/dashboard") || pathname?.startsWith("/interview");
+  const isAuthRoute = pathname === "/login" || pathname === "/signup";
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isProtectedRoute && (isError || !user)) {
+        router.push("/login");
+      } else if (isAuthRoute && user) {
+        router.push("/dashboard");
+      }
+    }
+  }, [isLoading, isError, user, isProtectedRoute, isAuthRoute, router]);
+
+  // Show a clean full-screen loading state when authenticating a protected route
+  if (isLoading && isProtectedRoute) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-foreground font-mono text-sm">
-        <div className="animate-pulse">Loading AstraLearn...</div>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 font-mono text-sm">
+        <Loader2 className="w-8 h-8 animate-spin mb-3 text-violet-500" />
+        <div>Verifying session...</div>
       </div>
     );
   }
@@ -41,7 +57,7 @@ function AuthPersist({ children }: { children: React.ReactNode }) {
 export function ReduxProvider({ children }: ReduxProviderProps) {
   return (
     <Provider store={store}>
-      <AuthPersist>{children}</AuthPersist>
+      <AuthWrapper>{children}</AuthWrapper>
     </Provider>
   );
 }

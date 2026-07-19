@@ -3,12 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSelector, useDispatch } from "react-redux";
 import { LogOut, User, LayoutDashboard } from "lucide-react";
 import { Button } from "../ui/button";
-import { logout } from "@/store/slices/authSlice";
-import { useLogoutMutation } from "@/store/api/auth/auth-api";
-import type { RootState } from "@/store/store";
+import { useGetMeQuery, useLogoutMutation } from "@/store/api/auth/auth-api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,17 +18,17 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 
 const Navbar = () => {
   const router = useRouter();
-  const dispatch = useDispatch();
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { data: meData } = useGetMeQuery();
   const [logoutMutation] = useLogoutMutation();
+
+  const user = meData?.data?.user || meData?.user;
 
   async function handleLogout() {
     try {
       await logoutMutation().unwrap();
     } catch {
-      // Ignore API logout errors and proceed with client logout
+      // Ignore API logout errors
     }
-    dispatch(logout());
     router.push("/");
   }
 
