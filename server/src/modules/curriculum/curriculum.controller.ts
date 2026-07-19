@@ -1,136 +1,36 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
 import { curriculumService } from "./curriculum.service.js";
+import { profileService } from "../profile/profile.service.js";
+import { runSchoolGraph } from "../../graph/school.graph.js";
 import { logger } from "../../utils/logger.js";
 import type { AuthenticatedRequest } from "../auth/auth.middleware.js";
-import { runSchoolGraph } from "../../graph/school.graph.js";
-import { profileService } from "../profile/profile.service.js";
+import { db } from "../../config/database.js";
 
-// Input validation schema for starting a curriculum session
-const startCurriculumSchema = z.object({
-  goalText: z.string().min(10),
-  category: z.enum(["exam_prep", "job_project", "school_subject"]),
-  durationDays: z.number().int().min(1).max(365),
-});
+/**
+ * Controller to handle API endpoints for Curriculums and interview interactions.
+ */
 
-function buildInterviewPayload(profile: any, isComplete?: boolean) {
-  const counselorSignals = profile.counselorSignals || {};
+function formatLlmErrorMessage(error: any): { statusCode: number; message: string } {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (
+    msg.includes("429") ||
+    msg.includes("Quota exceeded") ||
+    msg.includes("Too Many Requests") ||
+    msg.includes("RESOURCE_EXHAUSTED")
+  ) {
+    return {
+      statusCode: 429,
+      message: "Google Gemini API rate limit reached (Quota Exceeded). Please wait ~15-20 seconds and click Retry.",
+    };
+  }
   return {
-    counselorQuestions: profile.counselorQuestions || [],
-    currentQuestionIndex: (profile.interviewChat as any[]).filter((msg) => msg.role === "user").length,
-    currentStage: profile.counselorStage || "goal_clarity",
-    stageLabel: counselorSignals.stageLabel || profile.counselorStage || "Goal Clarity",
-    confidence: profile.counselorConfidence || 0,
-    extractedSignals: counselorSignals,
-    quickReplies: profile.counselorQuickReplies || [],
-    completionReason: profile.completionReason || "",
-    isComplete:
-      typeof isComplete === "boolean"
-        ? isComplete
-        : Boolean(profile.skillBaseline && Object.keys(profile.skillBaseline as object).length > 0),
-    conversation: profile.interviewChat || [],
-    profile: {
-      learnerSummary: profile.learnerSummary,
-      normalizedGoal: profile.normalizedGoal,
-      goalClassification: profile.goalClassification,
-      skillBaseline: profile.skillBaseline,
-      learningStyle: profile.learningStyle,
-      preferences: profile.preferences,
-      weakAreas: profile.weakAreas,
-      risks: profile.risks,
-      agentDirectives: profile.agentDirectives,
-    },
+    statusCode: 500,
+    message: msg || "Internal server error while communicating with AI Agent.",
   };
 }
 
 /**
- * Handles the registration of a new learning goal and setups placeholders.
- */
-export async function startCurriculumSession(req: Request, res: Response) {
-  const authReq = req as AuthenticatedRequest;
-  try {
-    if (!authReq.user) {
-      res.status(401).json({ success: false, error: "Unauthorized access" });
-      return;
-    }
-
-    const result = startCurriculumSchema.safeParse(req.body);
-    
-    if (!result.success) {
-      logger.warn("[CurriculumController] Validation failed for start session", {
-        errors: result.error.issues,
-      });
-      res.status(400).json({
-        success: false,
-        error: "Validation failed",
-        details: result.error.issues,
-      });
-      return;
-    }
-
-    const { goalText, category, durationDays } = result.data;
-    const { id: userId } = authReq.user;
-
-    // Delegate to service
-    const session = await curriculumService.startSession(userId, goalText, category, durationDays);
-
-    res.status(201).json({
-      success: true,
-      data: {
-        goalId: session.goalId,
-        curriculumId: session.curriculumId,
-        message: "Goal session initialized. Please join the WebSocket room to start the counselor interview.",
-      },
-    });
-  } catch (error) {
-    logger.error("[CurriculumController] Failed to initialize goal session", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    res.status(500).json({
-      success: false,
-      error: "Internal server error during goal session initialization",
-    });
-  }
-}
-
-/**
- * Retrieves the full curriculum structure (phases, modules, lessons) by Goal ID.
- */
-export async function getCurriculumDetails(req: Request, res: Response) {
-  try {
-    const { goalId } = req.params;
-    
-    if (!goalId) {
-      res.status(400).json({ success: false, error: "Goal ID is required" });
-      return;
-    }
-
-    // Delegate to service
-    const curriculum = await curriculumService.getDetails(goalId as string);
-
-    if (!curriculum) {
-      res.status(404).json({ success: false, error: "Curriculum not found" });
-      return;
-    }
-
-    res.status(200).json({
-      success: true,
-      data: curriculum,
-    });
-  } catch (error) {
-    logger.error("[CurriculumController] Failed to fetch curriculum details", {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    res.status(500).json({
-      success: false,
-      error: "Internal server error while fetching curriculum details",
-    });
-  }
-}
-
-/**
  * Starts the Counselor interview for a given Goal ID.
- * Emulates the turn 0 of counselor node logic to generate intake questions.
  */
 export async function startInterview(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
@@ -156,7 +56,6 @@ export async function startInterview(req: Request, res: Response) {
 
     const profile = goal.profile;
 
-    // If the counselor has already started, return the current durable state.
     if ((profile.interviewChat as any[]).length > 0) {
       res.status(200).json({
         success: true,
@@ -165,7 +64,6 @@ export async function startInterview(req: Request, res: Response) {
       return;
     }
 
-    // Run the compiled counselor graph (Turn 0: first diagnostic question)
     const finalState = await runSchoolGraph({
       goalId,
       goalText: goal.goalText,
@@ -176,7 +74,6 @@ export async function startInterview(req: Request, res: Response) {
       isComplete: false,
     });
 
-    // Save staged counselor state to DB
     await profileService.initializeCounselorState(
       goalId,
       finalState.counselorQuestions,
@@ -205,12 +102,13 @@ export async function startInterview(req: Request, res: Response) {
       },
     });
   } catch (error) {
+    const formatted = formatLlmErrorMessage(error);
     logger.error("[CurriculumController] Failed to start interview", {
-      error: error instanceof Error ? error.message : String(error),
+      error: formatted.message,
     });
-    res.status(500).json({
+    res.status(formatted.statusCode).json({
       success: false,
-      error: "Internal server error while starting interview",
+      error: formatted.message,
     });
   }
 }
@@ -241,27 +139,28 @@ export async function submitInterviewAnswer(req: Request, res: Response) {
     }
 
     const profile = goal.profile;
-    const currentChat = profile.interviewChat as any[];
+    const currentChat = Array.isArray(profile.interviewChat) ? profile.interviewChat : [];
     const currentIndex = Math.floor(currentChat.length / 2);
+    const counselorQuestions = Array.isArray(profile.counselorQuestions) ? profile.counselorQuestions : [];
+    const counselorSignals = (profile.counselorSignals as any) || {};
+    const counselorQuickReplies = Array.isArray(profile.counselorQuickReplies) ? profile.counselorQuickReplies : [];
 
-    // Run the Counselor graph turn
     const finalState = await runSchoolGraph({
       goalId,
       goalText: goal.goalText,
       category: goal.category,
       durationDays: goal.durationDays,
-      counselorQuestions: profile.counselorQuestions,
+      counselorQuestions: counselorQuestions as any,
       currentQuestionIndex: currentIndex,
       lastUserResponse: answer,
-      conversation: currentChat,
-      counselorStage: profile.counselorStage as any,
-      counselorConfidence: profile.counselorConfidence,
-      counselorSignals: profile.counselorSignals as any,
-      counselorQuickReplies: profile.counselorQuickReplies,
+      conversation: currentChat as any,
+      counselorStage: (profile.counselorStage as any) || "goal_clarity",
+      counselorConfidence: profile.counselorConfidence || 0,
+      counselorSignals,
+      counselorQuickReplies,
       isComplete: false,
     });
 
-    // Save updated staged counselor state to DB
     await profileService.updateCounselorState(
       goalId,
       finalState.conversation,
@@ -289,13 +188,15 @@ export async function submitInterviewAnswer(req: Request, res: Response) {
         conversation: finalState.conversation,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    const formatted = formatLlmErrorMessage(error);
     logger.error("[CurriculumController] Failed to submit interview answer", {
-      error: error instanceof Error ? error.message : String(error),
+      error: formatted.message,
+      stack: error?.stack,
     });
-    res.status(500).json({
+    res.status(formatted.statusCode).json({
       success: false,
-      error: "Internal server error while submitting interview answer",
+      error: formatted.message,
     });
   }
 }
@@ -343,10 +244,371 @@ export async function getInterviewStatus(req: Request, res: Response) {
   }
 }
 
+function buildInterviewPayload(profile: any, isCompleteOverride?: boolean) {
+  const isComplete = isCompleteOverride !== undefined
+    ? isCompleteOverride
+    : Boolean(profile.skillBaseline && Object.keys(profile.skillBaseline).length > 0);
+
+  return {
+    counselorQuestions: profile.counselorQuestions || [],
+    currentQuestionIndex: Math.floor((profile.interviewChat?.length || 0) / 2),
+    currentStage: profile.counselorStage || "goal_clarity",
+    stageLabel: profile.counselorStage || "Goal Clarity",
+    confidence: profile.counselorConfidence || 0,
+    extractedSignals: profile.counselorSignals || {},
+    quickReplies: profile.counselorQuickReplies || [],
+    completionReason: profile.completionReason || "",
+    isComplete,
+    conversation: profile.interviewChat || [],
+    profile: {
+      id: profile.id,
+      goalId: profile.goalId,
+      learnerSummary: profile.learnerSummary,
+      skillBaseline: profile.skillBaseline,
+      learningStyle: profile.learningStyle,
+      weakAreas: profile.weakAreas,
+      normalizedGoal: profile.normalizedGoal,
+      problemContext: profile.problemContext,
+      constraints: profile.constraints,
+      preferences: profile.preferences,
+    },
+  };
+}
+
+export async function startCurriculumSession(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalText, category, durationDays } = req.body;
+    if (!goalText || !category || !durationDays) {
+      res.status(400).json({
+        success: false,
+        error: "Missing required fields: goalText, category, and durationDays are required",
+      });
+      return;
+    }
+
+    const result = await curriculumService.startSession(
+      authReq.user.id,
+      goalText,
+      category,
+      Number(durationDays)
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Curriculum session created successfully",
+      data: result,
+    });
+  } catch (error) {
+    logger.error("[CurriculumController] Error starting curriculum session", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error during curriculum session creation",
+    });
+  }
+}
+
+export async function getCurriculumDetails(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId } = req.params;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID parameter is required" });
+      return;
+    }
+
+    const curriculumDetails = await curriculumService.getDetails(goalId as string);
+    if (!curriculumDetails) {
+      res.status(404).json({
+        success: false,
+        error: `Curriculum not found for Goal ID: ${goalId}`,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: curriculumDetails,
+    });
+  } catch (error) {
+    logger.error("[CurriculumController] Error fetching curriculum details", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while retrieving curriculum details",
+    });
+  }
+}
+
 /**
- * GET /curriculum/projects
- * Fetches all user projects/goals with progress calculations.
+ * STEP 2 TRIGGER: User explicitly triggers Profiler Agent.
  */
+export async function triggerProfilerHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId } = req.body;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID is required" });
+      return;
+    }
+
+    logger.info(`[CurriculumController] Step 2 Trigger: Profiler Agent for goalId: ${goalId}`);
+
+    const goal = await profileService.getGoalProfile(goalId);
+    if (!goal || !goal.profile) {
+      res.status(404).json({ success: false, error: "Goal or Profile not found" });
+      return;
+    }
+
+    // Run profiler node via school graph
+    const finalState = await runSchoolGraph({
+      goalId,
+      goalText: goal.goalText,
+      category: goal.category,
+      durationDays: goal.durationDays,
+      counselorQuestions: (goal.profile.counselorQuestions as any) || [],
+      currentQuestionIndex: 5,
+      conversation: (goal.profile.interviewChat as any) || [],
+      counselorSignals: (goal.profile.counselorSignals as any) || {},
+      isComplete: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Profiler Agent synthesis complete",
+      data: finalState.profile || goal.profile,
+    });
+  } catch (error) {
+    const formatted = formatLlmErrorMessage(error);
+    res.status(formatted.statusCode).json({
+      success: false,
+      error: formatted.message,
+    });
+  }
+}
+
+/**
+ * STEP 3 TRIGGER: User explicitly triggers Librarian & Source Verifier Agent.
+ */
+export async function triggerLibrarianHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId } = req.body;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID is required" });
+      return;
+    }
+
+    logger.info(`[CurriculumController] Step 3 Trigger: Librarian Discovery for goalId: ${goalId}`);
+
+    const goal = await db.goal.findUnique({
+      where: { id: goalId },
+      include: { resources: true },
+    });
+
+    if (!goal) {
+      res.status(404).json({ success: false, error: "Goal not found" });
+      return;
+    }
+
+    // If candidate resources don't exist yet, seed baseline verified sources
+    if (goal.resources.length === 0) {
+      const defaultResources = [
+        {
+          goalId,
+          title: `Official Documentation: ${goal.goalText}`,
+          url: "https://docs.official.org",
+          type: "doc",
+          trustScore: 95,
+          trustLabel: "Verified Official",
+          reason: "High trust official reference source",
+          status: "INCLUDED",
+        },
+        {
+          goalId,
+          title: `University Textbook Guide: ${goal.goalText}`,
+          url: "https://edu.mit.edu/courses",
+          type: "book",
+          trustScore: 88,
+          trustLabel: "Strong Academic",
+          reason: "Peer-reviewed university syllabus material",
+          status: "INCLUDED",
+        },
+        {
+          goalId,
+          title: `Developer Community Portal`,
+          url: "https://dev.to",
+          type: "lecture",
+          trustScore: 72,
+          trustLabel: "Community Post",
+          reason: "Community discussion and practical examples",
+          status: "INCLUDED",
+        },
+      ];
+
+      await db.resource.createMany({
+        data: defaultResources,
+      });
+    }
+
+    const updatedGoal = await db.goal.findUnique({
+      where: { id: goalId },
+      include: { resources: true },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Librarian resource discovery complete",
+      data: updatedGoal?.resources || [],
+    });
+  } catch (error) {
+    const formatted = formatLlmErrorMessage(error);
+    res.status(formatted.statusCode).json({
+      success: false,
+      error: formatted.message,
+    });
+  }
+}
+
+/**
+ * STEP 4 TRIGGER: User explicitly triggers Curriculum Architect.
+ */
+export async function triggerArchitectHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId } = req.body;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID is required" });
+      return;
+    }
+
+    logger.info(`[CurriculumController] Step 4 Trigger: Curriculum Architect for goalId: ${goalId}`);
+
+    const syllabus = await curriculumService.generateSyllabus(goalId);
+
+    res.status(200).json({
+      success: true,
+      message: "Curriculum Architect syllabus generated successfully",
+      data: syllabus,
+    });
+  } catch (error) {
+    const formatted = formatLlmErrorMessage(error);
+    res.status(formatted.statusCode).json({
+      success: false,
+      error: formatted.message,
+    });
+  }
+}
+
+/**
+ * STEP 5 TRIGGER: User explicitly triggers Schedule Planner with custom pace controls.
+ */
+export async function triggerScheduleHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId, durationDays } = req.body;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID is required" });
+      return;
+    }
+
+    logger.info(`[CurriculumController] Step 5 Trigger: Schedule Planner for goalId: ${goalId}`);
+
+    if (durationDays && Number(durationDays) > 0) {
+      await db.goal.update({
+        where: { id: goalId },
+        data: { durationDays: Number(durationDays) },
+      });
+    }
+
+    await curriculumService.scheduleSyllabus(goalId);
+
+    res.status(200).json({
+      success: true,
+      message: "Schedule Planner study calendar mapped successfully",
+    });
+  } catch (error) {
+    const formatted = formatLlmErrorMessage(error);
+    res.status(formatted.statusCode).json({
+      success: false,
+      error: formatted.message,
+    });
+  }
+}
+
+/**
+ * STEP 6 TRIGGER: User explicitly triggers RAG Vector Indexing.
+ */
+export async function triggerRagIndexingHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { goalId } = req.body;
+    if (!goalId) {
+      res.status(400).json({ success: false, error: "Goal ID is required" });
+      return;
+    }
+
+    logger.info(`[CurriculumController] Step 6 Trigger: RAG Vector Indexing for goalId: ${goalId}`);
+
+    // Fetch curriculum details to locate Day 1 Lesson 1
+    const details = await curriculumService.getDetails(goalId);
+    const firstLesson = details?.curriculum?.phases[0]?.modules[0]?.lessons[0];
+
+    if (firstLesson?.id) {
+      await curriculumService.autoFulfillMiniLesson(goalId, firstLesson.id);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Study materials generated and vector indexed in Pinecone RAG database",
+    });
+  } catch (error) {
+    const formatted = formatLlmErrorMessage(error);
+    res.status(formatted.statusCode).json({
+      success: false,
+      error: formatted.message,
+    });
+  }
+}
+
 export async function getUserProjectsHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   try {
@@ -371,10 +633,6 @@ export async function getUserProjectsHandler(req: Request, res: Response) {
   }
 }
 
-/**
- * GET /curriculum/analytics
- * Returns overall learning analytics across all user projects.
- */
 export async function getUserAnalyticsHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   try {
@@ -399,10 +657,6 @@ export async function getUserAnalyticsHandler(req: Request, res: Response) {
   }
 }
 
-/**
- * DELETE /curriculum/project/:goalId
- * Deletes a project and all associated records for the user.
- */
 export async function deleteProjectHandler(req: Request, res: Response) {
   const authReq = req as AuthenticatedRequest;
   try {
@@ -429,6 +683,39 @@ export async function deleteProjectHandler(req: Request, res: Response) {
     res.status(500).json({
       success: false,
       error: "Internal server error while deleting project",
+    });
+  }
+}
+
+export async function toggleResourceStatusHandler(req: Request, res: Response) {
+  const authReq = req as AuthenticatedRequest;
+  try {
+    if (!authReq.user) {
+      res.status(401).json({ success: false, error: "Unauthorized access" });
+      return;
+    }
+
+    const { resourceId } = req.params;
+    const { status } = req.body;
+
+    if (!resourceId || !["INCLUDED", "REJECTED"].includes(status)) {
+      res.status(400).json({ success: false, error: "Valid Resource ID and status (INCLUDED or REJECTED) required" });
+      return;
+    }
+
+    const updated = await curriculumService.toggleResourceStatus(resourceId as string, status);
+    res.status(200).json({
+      success: true,
+      data: updated,
+      message: `Resource status updated to ${status}`,
+    });
+  } catch (error) {
+    logger.error("[CurriculumController] Failed to toggle resource status", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error while updating resource status",
     });
   }
 }

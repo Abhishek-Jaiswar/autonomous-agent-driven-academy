@@ -18,8 +18,18 @@ interface ProfileReviewProps {
   onReset: () => void;
 }
 
-function entries(record?: Record<string, string>) {
-  return Object.entries(record || {}).slice(0, 8);
+function entries(record?: any): Array<[string, string]> {
+  if (!record) return [];
+  if (Array.isArray(record)) {
+    return record.map((item: any) => [
+      String(item.skill || item.name || "Skill"),
+      String(item.level || "Intermediate")
+    ] as [string, string]).slice(0, 8);
+  }
+  if (typeof record === "object") {
+    return Object.entries(record).slice(0, 8) as Array<[string, string]>;
+  }
+  return [];
 }
 
 export function ProfileReview({

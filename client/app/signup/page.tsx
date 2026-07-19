@@ -25,7 +25,7 @@ export default function SignupPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push("/dashboard/curriculum");
+      router.push("/dashboard");
     }
   }, [user, router]);
 
@@ -55,15 +55,19 @@ export default function SignupPage() {
       }
     } catch (err: any) {
       console.error("Signup failed:", err);
+      const msg = err?.data?.error || (typeof err?.error === "string" ? err.error : "") || "Internal server error. Please try again.";
+      setValidationError(msg);
     }
   }
 
   // Get readable API error message
   const errorMessage =
     validationError ||
-    (apiError && "data" in apiError
-      ? (apiError.data as any)?.error
-      : "Registration failed. Please try again.");
+    (apiError
+      ? "data" in (apiError as object)
+        ? (apiError as any).data?.error || "Internal server error. Please try again."
+        : "Internal server error. Please try again."
+      : "");
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 py-12 bg-background">

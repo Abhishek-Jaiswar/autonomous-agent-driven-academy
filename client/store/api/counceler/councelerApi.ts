@@ -10,19 +10,19 @@ export const councelerApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     startInterview: builder.mutation<ApiSuccess<StartInterviewResponse>, StartInterviewRequest>({
       query: (body) => ({
-        url: "/interview/start",
+        url: "/curriculum/interview/start",
         method: "POST",
         body,
       }),
     }),
     
     getInterview: builder.query<ApiSuccess<InterviewState>, string>({
-      query: (interviewId) => `/interview/${interviewId}`,
+      query: (interviewId) => `/curriculum/interview/${interviewId}`,
     }),
 
     submitAnswer: builder.mutation<ApiSuccess<SubmitAnswerResponse>, SubmitAnswerRequest>({
       query: (body) => ({
-        url: "/interview/message",
+        url: "/curriculum/interview/answer",
         method: "POST",
         body,
       }),

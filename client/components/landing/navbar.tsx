@@ -76,7 +76,7 @@ const Navbar = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem
-                    onClick={() => router.push("/dashboard/curriculum")}
+                    onClick={() => router.push("/dashboard")}
                     className="flex items-center gap-2 cursor-pointer hover:bg-muted"
                   >
                     <LayoutDashboard className="w-4 h-4" /> Dashboard

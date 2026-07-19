@@ -53,7 +53,7 @@ const Hero = () => {
           <Button
             size="lg"
             className="bg-primary text-primary-foreground hover:bg-primary/95 shadow-lg border-0 font-medium px-8 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-            onClick={() => router.push("/dashboard/curriculum")}
+            onClick={() => router.push("/dashboard")}
           >
             Enter Academy
             <ArrowRight className="w-4 h-4 ml-2" />

@@ -2,19 +2,21 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, ArrowRight, Loader2, BookOpen, GraduationCap, Briefcase } from "lucide-react";
+import { Sparkles, ArrowRight, Loader2, BookOpen, GraduationCap, Briefcase, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { useStartCurriculumMutation } from "@/store/api/auth/auth-api";
 
 export default function QuickStartPage() {
   const router = useRouter();
   const [goalText, setGoalText] = useState("");
   const [category, setCategory] = useState<"job_project" | "exam_prep" | "school_subject">("job_project");
   const [durationDays, setDurationDays] = useState(14);
-  const [isLoading, setIsLoading] = useState(false);
+  const [startCurriculum, { isLoading: isStarting }] = useStartCurriculumMutation();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const presets = [
     {
@@ -46,32 +48,26 @@ export default function QuickStartPage() {
   async function handleCreateGoal(e: React.FormEvent) {
     e.preventDefault();
     if (!goalText.trim()) return;
+    setErrorMessage(null);
 
-    setIsLoading(true);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("astralearn_token") : "";
-      const res = await fetch("http://localhost:5000/curriculum/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token || ""}`,
-        },
-        body: JSON.stringify({
-          goalText,
-          category,
-          durationDays,
-        }),
-      });
+      const res = await startCurriculum({
+        goalText,
+        category,
+        durationDays,
+      }).unwrap();
 
-      const data = await res.json();
-      if (data.success && data.data?.goalId) {
-        localStorage.setItem("astralearn_goal_id", data.data.goalId);
-        router.push("/dashboard");
+      if (res.success && res.data?.goalId) {
+        localStorage.setItem("astralearn_goal_id", res.data.goalId);
+        router.push("/dashboard/counselor");
+      } else {
+        setErrorMessage((res as any).message || "Failed to initialize learning goal.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to start goal:", err);
-    } finally {
-      setIsLoading(false);
+      setErrorMessage(
+        err?.data?.error || err?.message || "Failed to start goal session. Please check your login session."
+      );
     }
   }
 
@@ -187,8 +183,16 @@ export default function QuickStartPage() {
               </div>
             </div>
 
-            <Button type="submit" disabled={isLoading || !goalText.trim()} className="w-full">
-              {isLoading ? (
+            {/* Error Message */}
+            {errorMessage && (
+              <div className="p-3 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <Button type="submit" disabled={isStarting || !goalText.trim()} className="w-full">
+              {isStarting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Aligning Agents...
                 </>

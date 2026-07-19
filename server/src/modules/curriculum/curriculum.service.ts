@@ -666,5 +666,16 @@ export const curriculumService = {
       return { success: true };
     });
   },
+
+  /**
+   * Toggles the status of a Librarian candidate resource for human intervention.
+   */
+  async toggleResourceStatus(resourceId: string, status: "INCLUDED" | "REJECTED") {
+    logger.info(`[CurriculumService] Toggling resource [${resourceId}] status to ${status}`);
+    return await db.resource.update({
+      where: { id: resourceId },
+      data: { status },
+    });
+  },
 };
 

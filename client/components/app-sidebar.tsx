@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSelector } from "react-redux"
 
@@ -23,16 +24,54 @@ import {
   Compass,
   BookOpen,
   ShieldCheck,
+  MessageSquare,
   Settings2,
   CircleHelp,
-  Sparkles,
   FolderKanban,
   BarChart3,
   Gem,
+  BrainCircuit,
+  Calendar,
+  Layers,
+  Award,
+  Zap,
+  CheckCircle,
 } from "lucide-react"
+
+import { useGetCurriculumQuery, useGetUserProjectsQuery, useGetUserAnalyticsQuery } from "@/store/api/auth/auth-api"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const auth = useSelector((state: RootState) => state.auth)
+
+  const [goalId, setGoalId] = useState<string | null>(null)
+  const { data: userProjectsData } = useGetUserProjectsQuery()
+  const { data: analyticsData } = useGetUserAnalyticsQuery()
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedGoalId = localStorage.getItem("astralearn_goal_id")
+      if (savedGoalId) {
+        setGoalId(savedGoalId)
+      } else if (userProjectsData?.data && userProjectsData.data.length > 0) {
+        setGoalId(userProjectsData.data[0].id)
+      }
+    }
+  }, [userProjectsData])
+
+  const { data: curriculumData } = useGetCurriculumQuery(goalId, { skip: !goalId })
+  const goal = curriculumData?.data
+  const profile = goal?.profile
+  const phases = goal?.curriculum?.phases || []
+  const analytics = analyticsData?.data
+
+  // Sequential agent unlock state definitions
+  const isGoalStarted = Boolean(goalId)
+  const isInterviewComplete = Boolean(
+    profile?.skillBaseline && Object.keys(profile.skillBaseline).length > 0
+  )
+  const isCurriculumReady = phases.length > 0
+  const completedLessons = analytics?.completedLessons || 0
+  const hasCompletedLesson = completedLessons > 0
 
   const user = auth.user
     ? {
@@ -48,14 +87,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navMain = [
     {
-      title: "Dashboard",
+      title: "Dashboard Overview",
       url: "/dashboard",
       icon: <LayoutDashboard />,
-    },
-    {
-      title: "Quick Start",
-      url: "/dashboard/quickstart",
-      icon: <Sparkles />,
     },
     {
       title: "My Workspaces",
@@ -74,21 +108,77 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     },
   ]
 
+  // All 10 Agents with strict sequential unlock rules
   const navWorkspace = [
     {
-      title: "AI Classroom",
-      url: "/dashboard/classroom",
-      icon: <BookOpen />,
+      title: "Counselor Agent",
+      url: "/dashboard/counselor",
+      icon: <MessageSquare className="text-primary" />,
+      badge: "Agent 01",
+      isLocked: false, // Always unlocked for project intake
     },
     {
-      title: "Curriculum Map",
-      url: "/dashboard/curriculum",
-      icon: <Compass />,
+      title: "Profiler Agent",
+      url: "/dashboard/profiler",
+      icon: <BrainCircuit className="text-indigo-500" />,
+      badge: "Agent 02",
+      isLocked: !isInterviewComplete, // Unlocks when counseling interview completes
     },
     {
-      title: "SourceTrust Board",
+      title: "Librarian Board",
       url: "/dashboard/sourcetrust",
-      icon: <ShieldCheck />,
+      icon: <ShieldCheck className="text-indigo-500" />,
+      badge: "Agent 03",
+      isLocked: !isInterviewComplete, // Unlocks when learner profile is compiled
+    },
+    {
+      title: "Source Verifier",
+      url: "/dashboard/verifier",
+      icon: <CheckCircle className="text-emerald-500" />,
+      badge: "Agent 04",
+      isLocked: !isInterviewComplete, // Unlocks when learner profile is compiled
+    },
+    {
+      title: "Curriculum Architect",
+      url: "/dashboard/curriculum",
+      icon: <Compass className="text-violet-500" />,
+      badge: "Agent 05",
+      isLocked: !isCurriculumReady, // Locked until curriculum generation completes!
+    },
+    {
+      title: "Schedule Planner",
+      url: "/dashboard/schedule",
+      icon: <Calendar className="text-violet-500" />,
+      badge: "Agent 06",
+      isLocked: !isCurriculumReady, // Locked until schedule allocation completes!
+    },
+    {
+      title: "AI Classroom (Teacher)",
+      url: "/dashboard/classroom",
+      icon: <BookOpen className="text-emerald-500" />,
+      badge: "Agent 07",
+      isLocked: !isCurriculumReady, // Locked until active lesson is unlocked!
+    },
+    {
+      title: "Visual Explainer (Sub-agent)",
+      url: "/dashboard/visuals",
+      icon: <Layers className="text-primary" />,
+      badge: "Agent 08",
+      isLocked: !isCurriculumReady, // Locked until visual diagrams are generated!
+    },
+    {
+      title: "Examiner Agent (Sub-agent)",
+      url: "/dashboard/examiner",
+      icon: <Award className="text-amber-500" />,
+      badge: "Agent 09",
+      isLocked: !isCurriculumReady, // Locked until evaluation quiz is compiled!
+    },
+    {
+      title: "Adaptive Coach",
+      url: "/dashboard/coach",
+      icon: <Zap className="text-primary" />,
+      badge: "Agent 10",
+      isLocked: !hasCompletedLesson, // Strictly locked until learner completes at least 1 lesson!
     },
   ]
 
@@ -128,8 +218,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={navMain} />
         <div className="px-3 pt-4">
-          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground px-2 pb-1">
-            Active Workspace
+          <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground px-2 pb-1.5 flex items-center justify-between">
+            <span>Agent Workspaces (10)</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Autonomous Graph Active" />
           </div>
           <NavMain items={navWorkspace} />
         </div>

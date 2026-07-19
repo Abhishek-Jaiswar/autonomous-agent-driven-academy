@@ -1,5 +1,12 @@
 // ─── Shared Types (mirrors server/src/types/interview.types.ts) ───────────────
 
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  role?: string;
+}
+
 export interface ConversationMessage {
   role: "user" | "assistant";
   content: string;
@@ -116,67 +123,31 @@ export interface ProfileRisk {
 }
 
 export interface GoalClassification {
+  title?: string;
+  targetOutcome?: string;
+  deliverable?: string;
+  duration?: string;
+  durationDays?: number;
+  tokenBudgetClass?: TokenBudgetClass;
   scope: GoalScope;
   complexity: GoalComplexity;
-  estimatedDurationDays: number;
-  tokenBudgetClass: TokenBudgetClass;
-  requiresPaidPlan: boolean;
   recommendedFlow: RecommendedFlow;
-  shouldAskClarifyingQuestions: boolean;
-  reasoning: string;
-}
-
-export interface ProblemContext {
-  whyNow?: string;
-  realWorldUseCase?: string;
-  targetProject?: string;
-  jobRole?: string;
-  successScenario?: string;
-}
-
-export interface LearnerConstraints {
-  dailyTimeMinutes?: number;
-  schedulePattern?: "weekday" | "weekend" | "irregular";
-  deviceAccess?: string[];
-  budget?: "free_only" | "low" | "paid_ok";
-}
-
-export interface LearningPreferences {
-  explanationDepth?: "simple" | "medium" | "deep";
-  practiceBias?: "theory_first" | "build_first" | "mixed";
-  feedbackStyle?: "direct" | "encouraging" | "socratic";
-  preferredArtifacts?: string[];
-  learningStyle?: "visual" | "practical" | "text" | "balanced";
-  dailyTimeCommitment?: string;
-  assessmentMode?: "quiz" | "project" | "mixed";
-}
-
-export interface SuccessCriteria {
-  finalDeliverable?: string;
-  measurableOutcomes?: string[];
-  evaluationMethod?: "quiz" | "project" | "portfolio" | "exam" | "interview";
+  requiresPaidPlan: boolean;
+  notes: string;
 }
 
 export interface LearnerProfileReview {
+  id?: string;
+  goalId?: string;
   learnerSummary?: string;
-  normalizedGoal?: {
-    title?: string;
-    category?: string;
-    targetOutcome?: string;
-    deliverable?: string;
-    durationDays?: number;
-  };
+  skillBaseline?: Array<{ skill: string; level: string }> | Record<string, string>;
+  learningStyle?: string;
+  normalizedGoal?: GoalClassification;
   goalClassification?: GoalClassification;
-  problemContext?: ProblemContext;
-  constraints?: LearnerConstraints;
-  learningPreferences?: LearningPreferences;
-  successCriteria?: SuccessCriteria;
-  prerequisiteGaps?: string[];
-  skillBaseline?: Record<string, string>;
-  learningStyle?: "visual" | "practical" | "text" | "balanced";
+  problemContext?: string;
+  constraints?: string[];
   preferences?: {
-    learningStyle?: "visual" | "practical" | "text" | "balanced";
-    dailyTimeCommitment?: string;
+    learningStyle?: string;
     assessmentMode?: "quiz" | "project" | "mixed";
   };
   weakAreas?: string[];

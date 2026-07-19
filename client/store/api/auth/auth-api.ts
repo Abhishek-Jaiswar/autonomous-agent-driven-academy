@@ -1,110 +1,102 @@
-import { baseApi } from "../baseApi";
-import type {
-  ApiSuccess,
-  CounselorInterviewResponse,
-  LearnerProfileReview,
-} from "@/lib/types";
+import { baseApi } from "../baseApi"
+import type { User, CounselorInterviewResponse } from "@/lib/types"
 
-interface AuthCredentials {
-  email: string;
-  password: string;
+export interface AuthResponse {
+  success?: boolean
+  message?: string
+  data?: {
+    user: User
+    token: string
+  }
+  user?: User
+  token?: string
 }
 
-interface AuthUser {
-  id: string;
-  email: string;
-}
-
-interface StartCurriculumRequest {
-  goalText: string;
-  category: "exam_prep" | "job_project" | "school_subject";
-  durationDays: number;
-}
-
-interface StartCurriculumResponse {
-  goalId: string;
-  curriculumId: string;
-  message: string;
-}
-
-interface StartInterviewRequest {
-  goalId: string;
-}
-
-interface SubmitAnswerRequest {
-  goalId: string;
-  answer: string;
+export interface ApiSuccess<T> {
+  success: boolean
+  message?: string
+  data: T
 }
 
 export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    signup: builder.mutation<ApiSuccess<AuthUser>, AuthCredentials>({
-      query: (credentials) => ({
-        url: "/auth/signup",
-        method: "POST",
-        body: credentials,
-      }),
-    }),
-
-    login: builder.mutation<ApiSuccess<{ user: AuthUser }>, AuthCredentials>({
+    login: builder.mutation<AuthResponse, any>({
       query: (credentials) => ({
         url: "/auth/login",
         method: "POST",
         body: credentials,
       }),
+      invalidatesTags: ["User"],
     }),
 
-    getMe: builder.query<ApiSuccess<AuthUser>, void>({
+    signup: builder.mutation<AuthResponse, any>({
+      query: (userData) => ({
+        url: "/auth/signup",
+        method: "POST",
+        body: userData,
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+    me: builder.query<AuthResponse, void>({
       query: () => "/auth/me",
+      providesTags: ["User"],
     }),
 
-    logout: builder.mutation<any, void>({
+    logout: builder.mutation<void, void>({
       query: () => ({
         url: "/auth/logout",
         method: "POST",
       }),
+      invalidatesTags: ["User"],
     }),
 
-    startCurriculum: builder.mutation<
-      ApiSuccess<StartCurriculumResponse>,
-      StartCurriculumRequest
+    // Curriculum & Agent Graph Endpoints
+    startCurriculumSession: builder.mutation<
+      ApiSuccess<{ goalId: string; curriculumId: string }>,
+      { goalText: string; category: string; durationDays: number }
     >({
-      query: (payload) => ({
+      query: (body) => ({
         url: "/curriculum/start",
         method: "POST",
-        body: payload,
+        body,
       }),
       invalidatesTags: ["Curriculum"],
     }),
 
     getCurriculum: builder.query<ApiSuccess<any>, string | null>({
       query: (goalId) => `/curriculum/${goalId}`,
-      providesTags: (result, error, goalId) =>
-        goalId ? [{ type: "Curriculum", id: goalId }] : ["Curriculum"],
+      providesTags: (result, error, goalId) => [
+        { type: "Curriculum", id: goalId || "LIST" },
+      ],
     }),
 
     startCounselorInterview: builder.mutation<
       ApiSuccess<CounselorInterviewResponse>,
-      StartInterviewRequest
+      { goalId: string }
     >({
-      query: (payload) => ({
+      query: (body) => ({
         url: "/curriculum/interview/start",
         method: "POST",
-        body: payload,
+        body,
       }),
-      invalidatesTags: ["Curriculum"],
+      invalidatesTags: (result, error, { goalId }) => [
+        { type: "Curriculum", id: goalId },
+      ],
     }),
 
     submitCounselorAnswer: builder.mutation<
-      ApiSuccess<CounselorInterviewResponse & { profile?: LearnerProfileReview }>,
-      SubmitAnswerRequest
+      ApiSuccess<CounselorInterviewResponse>,
+      { goalId: string; answer: string }
     >({
-      query: (payload) => ({
+      query: (body) => ({
         url: "/curriculum/interview/answer",
         method: "POST",
-        body: payload,
+        body,
       }),
-      invalidatesTags: ["Curriculum"],
+      invalidatesTags: (result, error, { goalId }) => [
+        { type: "Curriculum", id: goalId },
+      ],
     }),
 
     getCounselorInterview: builder.query<ApiSuccess<CounselorInterviewResponse>, string>({
@@ -113,17 +105,135 @@ export const authApi = baseApi.injectEndpoints({
         { type: "Curriculum", id: goalId },
       ],
     }),
+
+    // Explicit Step-Trigger Mutations for Progressive Flow
+    triggerProfiler: builder.mutation<ApiSuccess<any>, { goalId: string }>({
+      query: (body) => ({
+        url: "/curriculum/trigger-profiler",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { goalId }) => [{ type: "Curriculum", id: goalId }],
+    }),
+
+    triggerLibrarian: builder.mutation<ApiSuccess<any>, { goalId: string }>({
+      query: (body) => ({
+        url: "/curriculum/trigger-librarian",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { goalId }) => [{ type: "Curriculum", id: goalId }],
+    }),
+
+    triggerArchitect: builder.mutation<ApiSuccess<any>, { goalId: string }>({
+      query: (body) => ({
+        url: "/curriculum/trigger-architect",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { goalId }) => [{ type: "Curriculum", id: goalId }],
+    }),
+
+    triggerSchedule: builder.mutation<ApiSuccess<any>, { goalId: string; durationDays?: number }>({
+      query: (body) => ({
+        url: "/curriculum/trigger-schedule",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { goalId }) => [{ type: "Curriculum", id: goalId }],
+    }),
+
+    triggerRagIndexing: builder.mutation<ApiSuccess<any>, { goalId: string }>({
+      query: (body) => ({
+        url: "/curriculum/trigger-rag-index",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { goalId }) => [{ type: "Curriculum", id: goalId }],
+    }),
+
+    getUserProjects: builder.query<ApiSuccess<any[]>, void>({
+      query: () => "/curriculum/projects",
+      providesTags: ["Curriculum"],
+    }),
+
+    getUserAnalytics: builder.query<ApiSuccess<any>, void>({
+      query: () => "/curriculum/analytics",
+      providesTags: ["Curriculum"],
+    }),
+
+    deleteUserProject: builder.mutation<ApiSuccess<any>, string>({
+      query: (goalId) => ({
+        url: `/curriculum/project/${goalId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Curriculum"],
+    }),
+
+    toggleResourceStatus: builder.mutation<
+      ApiSuccess<any>,
+      { resourceId: string; status: "INCLUDED" | "REJECTED" }
+    >({
+      query: ({ resourceId, status }) => ({
+        url: `/curriculum/resource/${resourceId}/toggle`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Curriculum"],
+    }),
+
+    getLessonDetails: builder.query<ApiSuccess<any>, string | null>({
+      query: (lessonId) => `/curriculum/lesson/${lessonId}`,
+    }),
+
+    submitLessonDoubt: builder.mutation<
+      ApiSuccess<{ answer: string; sources?: string[] }>,
+      { lessonId: string; goalId: string; doubt: string }
+    >({
+      query: ({ lessonId, goalId, doubt }) => ({
+        url: `/curriculum/lesson/${lessonId}/doubt`,
+        method: "POST",
+        body: { goalId, doubt },
+      }),
+    }),
+
+    submitQuizAnswer: builder.mutation<
+      ApiSuccess<any>,
+      { activityId: string; answers: Record<number, string> }
+    >({
+      query: ({ activityId, answers }) => ({
+        url: `/curriculum/activity/${activityId}/submit`,
+        method: "POST",
+        body: { answers },
+      }),
+      invalidatesTags: ["Curriculum"],
+    }),
   }),
-});
+})
 
 export const {
-  useSignupMutation,
   useLoginMutation,
-  useGetMeQuery,
+  useSignupMutation,
+  useMeQuery,
+  useMeQuery: useGetMeQuery,
   useLogoutMutation,
-  useStartCurriculumMutation,
+  useStartCurriculumSessionMutation,
+  useStartCurriculumSessionMutation: useStartCurriculumMutation,
   useGetCurriculumQuery,
   useStartCounselorInterviewMutation,
   useSubmitCounselorAnswerMutation,
   useGetCounselorInterviewQuery,
+  useLazyGetCounselorInterviewQuery,
+  useTriggerProfilerMutation,
+  useTriggerLibrarianMutation,
+  useTriggerArchitectMutation,
+  useTriggerScheduleMutation,
+  useTriggerRagIndexingMutation,
+  useGetUserProjectsQuery,
+  useGetUserAnalyticsQuery,
+  useDeleteUserProjectMutation,
+  useToggleResourceStatusMutation,
+  useGetLessonDetailsQuery,
+  useSubmitLessonDoubtMutation,
+  useSubmitQuizAnswerMutation,
 } = authApi;

@@ -28,7 +28,7 @@ function LoginForm() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push("/dashboard/curriculum");
+      router.push("/dashboard");
     }
   }, [user, router]);
 
@@ -58,19 +58,23 @@ function LoginForm() {
       const res = await login({ email, password }).unwrap();
       if (res.success && res.data?.user) {
         dispatch(setCredentials({ user: res.data.user }));
-        router.push("/dashboard/curriculum");
+        router.push("/dashboard");
       }
     } catch (err: any) {
       console.error("Login failed:", err);
+      const msg = err?.data?.error || (typeof err?.error === "string" ? err.error : "") || "Internal server error. Please try again.";
+      setValidationError(msg);
     }
   }
 
   // Get readable API error message
   const errorMessage =
     validationError ||
-    (apiError && "data" in apiError
-      ? (apiError.data as any)?.error
-      : "Invalid email or password. Please try again.");
+    (apiError
+      ? "data" in (apiError as object)
+        ? (apiError as any).data?.error || "Internal server error. Please try again."
+        : "Internal server error. Please try again."
+      : "");
 
   return (
     <div className="w-full bg-card border border-border rounded-xl p-8 shadow-sm">

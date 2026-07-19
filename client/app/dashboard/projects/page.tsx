@@ -8,16 +8,18 @@ import {
   ArrowRight,
   Trash2,
   Loader2,
-  Compass,
-  BookOpen,
   Calendar,
   Sparkles,
   Layers,
+  PlayCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+
+import { useGetUserProjectsQuery, useDeleteUserProjectMutation } from "@/store/api/auth/auth-api";
 
 interface UserProject {
   id: string;
@@ -31,80 +33,81 @@ interface UserProject {
   totalLessons: number;
   completedLessons: number;
   progressPercentage: number;
+  profile?: {
+    interviewChat?: any[];
+    skillBaseline?: any;
+    counselorStage?: string;
+  };
 }
 
 export default function MyProjectsPage() {
   const router = useRouter();
-  const [projects, setProjects] = useState<UserProject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeGoalId, setActiveGoalId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { data: projectsData, isLoading } = useGetUserProjectsQuery();
+  const [deleteProject, { isLoading: isDeleting }] = useDeleteUserProjectMutation();
+
+  const projects: UserProject[] = projectsData?.data || [];
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       setActiveGoalId(localStorage.getItem("astralearn_goal_id"));
     }
-    fetchProjects();
   }, []);
 
-  async function fetchProjects() {
-    setIsLoading(true);
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("astralearn_token") : "";
-      const res = await fetch("http://localhost:5000/curriculum/projects", {
-        headers: {
-          Authorization: `Bearer ${token || ""}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setProjects(data.data || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch user projects:", err);
-    } finally {
-      setIsLoading(false);
+  function getProjectStep(project: UserProject) {
+    const profile = project.profile || {};
+    const isInterviewComplete = Boolean(
+      profile.skillBaseline && Object.keys(profile.skillBaseline).length > 0
+    );
+
+    if (!isInterviewComplete) {
+      return {
+        stepNumber: 1,
+        totalSteps: 3,
+        stepTitle: "Step 1/3: Diagnostic Interview",
+        statusText: "Complete intake interview with Counselor Agent",
+        route: "/dashboard/counselor",
+      };
     }
+
+    if (project.totalLessons === 0) {
+      return {
+        stepNumber: 2,
+        totalSteps: 3,
+        stepTitle: "Step 2/3: Generating Syllabus",
+        statusText: "Architect & Librarian building learning modules",
+        route: "/dashboard/curriculum",
+      };
+    }
+
+    return {
+      stepNumber: 3,
+      totalSteps: 3,
+      stepTitle: `Step 3/3: Active Classroom (${project.completedLessons}/${project.totalLessons} Done)`,
+      statusText: `${project.progressPercentage}% Completed`,
+      route: "/dashboard/classroom",
+    };
   }
 
-  function handleOpenWorkspace(project: UserProject) {
+  function handleResumeWorkspace(project: UserProject, targetRoute: string) {
     if (typeof window !== "undefined") {
       localStorage.setItem("astralearn_goal_id", project.id);
+      localStorage.removeItem("astralearn_active_lesson_id");
       setActiveGoalId(project.id);
     }
-    router.push("/dashboard/classroom");
-  }
-
-  function handleViewRoadmap(project: UserProject) {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("astralearn_goal_id", project.id);
-      setActiveGoalId(project.id);
-    }
-    router.push("/dashboard/curriculum");
+    router.push(targetRoute);
   }
 
   async function handleDeleteProject(goalId: string) {
-    setDeletingId(goalId);
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("astralearn_token") : "";
-      const res = await fetch(`http://localhost:5000/curriculum/project/${goalId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token || ""}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setProjects((prev) => prev.filter((p) => p.id !== goalId));
-        if (activeGoalId === goalId) {
-          localStorage.removeItem("astralearn_goal_id");
-          setActiveGoalId(null);
-        }
+      await deleteProject(goalId).unwrap();
+      if (activeGoalId === goalId) {
+        localStorage.removeItem("astralearn_goal_id");
+        setActiveGoalId(null);
       }
     } catch (err) {
       console.error("Failed to delete project:", err);
-    } finally {
-      setDeletingId(null);
     }
   }
 
@@ -155,6 +158,8 @@ export default function MyProjectsPage() {
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {projects.map((project) => {
             const isActive = project.id === activeGoalId;
+            const stepInfo = getProjectStep(project);
+
             return (
               <Card key={project.id} className={`flex flex-col justify-between transition-all ${isActive ? "border-primary shadow-sm" : ""}`}>
                 <CardHeader className="pb-3">
@@ -176,6 +181,17 @@ export default function MyProjectsPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4 pt-0">
+                  {/* Step Checker Badge */}
+                  <div className="p-2.5 rounded-lg border border-border bg-muted/40 space-y-1">
+                    <div className="flex items-center justify-between text-xs font-bold text-card-foreground">
+                      <span className="flex items-center gap-1.5 text-primary font-mono">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                        {stepInfo.stepTitle}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">{stepInfo.statusText}</p>
+                  </div>
+
                   {/* Progress Bar */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-xs font-medium text-muted-foreground">
@@ -183,47 +199,34 @@ export default function MyProjectsPage() {
                       <span className="text-card-foreground font-bold">{project.progressPercentage}%</span>
                     </div>
                     <Progress value={project.progressPercentage} className="h-2" />
-                    <div className="text-[11px] text-muted-foreground">
-                      {project.completedLessons} of {project.totalLessons} lessons completed
-                    </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col gap-2 pt-2 border-t border-border">
+                  {/* Single Action Button: Resume Learning Workspace */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-border">
                     <Button
-                      onClick={() => handleOpenWorkspace(project)}
-                      className="w-full justify-between"
+                      onClick={() => handleResumeWorkspace(project, stepInfo.route)}
+                      className="flex-1 justify-between font-bold"
                       size="sm"
                     >
                       <span className="flex items-center gap-1.5">
-                        <BookOpen className="w-4 h-4" /> Open AI Classroom
+                        <PlayCircle className="w-4 h-4" /> Resume Learning Workspace
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </Button>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewRoadmap(project)}
-                        className="flex-1"
-                      >
-                        <Compass className="mr-1.5 h-3.5 w-3.5" /> Roadmap
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteProject(project.id)}
-                        disabled={deletingId === project.id}
-                        className="text-destructive hover:bg-destructive/10"
-                      >
-                        {deletingId === project.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteProject(project.id)}
+                      disabled={isDeleting}
+                      className="text-destructive hover:bg-destructive/10 shrink-0"
+                      title="Delete Project"
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

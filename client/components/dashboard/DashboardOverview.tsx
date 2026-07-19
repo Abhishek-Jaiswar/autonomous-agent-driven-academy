@@ -8,13 +8,19 @@ import {
   Award,
   ArrowRight,
   BrainCircuit,
-  Users,
   CheckCircle2,
   AlertCircle,
   Plus,
   BarChart3,
   FolderKanban,
   Zap,
+  MessageSquare,
+  Compass,
+  BookOpen,
+  Sparkles,
+  Layers,
+  CheckCircle,
+  Lock,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -27,6 +33,8 @@ import {
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 
+import { useGetUserAnalyticsQuery } from "@/store/api/auth/auth-api"
+
 interface DashboardOverviewProps {
   curriculumData: any
   onReset: () => void
@@ -38,22 +46,27 @@ export function DashboardOverview({
 }: DashboardOverviewProps) {
   const router = useRouter()
   const goal = curriculumData?.data
+  const profile = goal?.profile
   const phases = goal?.curriculum?.phases || []
   const resources = goal?.resources || []
 
-  // Progress Calculations
-  let totalLessons = 0
-  let completedLessons = 0
+  const isGoalStarted = Boolean(goal?.id)
+  const isInterviewComplete = Boolean(
+    profile?.skillBaseline && Object.keys(profile.skillBaseline).length > 0
+  )
+  const isCurriculumReady = phases.length > 0
+
+  // Overall User Analytics across all projects
+  const { data: analyticsData } = useGetUserAnalyticsQuery()
+  const analytics = analyticsData?.data
+
+  // Active Project Current Lesson Lookup
   let currentLesson: any = null
   let currentModuleTitle = ""
 
   phases.forEach((phase: any) => {
     phase.modules?.forEach((mod: any) => {
       mod.lessons?.forEach((les: any) => {
-        totalLessons++
-        if (les.status === "COMPLETED") {
-          completedLessons++
-        }
         if (!currentLesson && les.status !== "LOCKED" && les.status !== "COMPLETED") {
           currentLesson = les
           currentModuleTitle = mod.title
@@ -62,13 +75,114 @@ export function DashboardOverview({
     })
   })
 
-  if (!currentLesson && totalLessons > 0) {
+  if (!currentLesson && phases.length > 0) {
     currentLesson = phases[0]?.modules[0]?.lessons[0]
     currentModuleTitle = phases[0]?.modules[0]?.title
   }
 
-  const progressPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
-  const includedResourcesCount = resources.filter((r: any) => r.status === "INCLUDED").length
+  // All 10 Agents Matrix Data
+  const agentMatrix = [
+    {
+      id: "counselor",
+      number: "01",
+      name: "Counselor Agent",
+      role: "Intake & Goal Diagnostics",
+      url: "/dashboard/counselor",
+      icon: <MessageSquare className="w-4 h-4 text-primary" />,
+      status: profile ? "Profile Compiled" : goal ? "Active Intake" : "Ready",
+      isLocked: false,
+    },
+    {
+      id: "profiler",
+      number: "02",
+      name: "Learner Profiler",
+      role: "Skill Baseline & Style Synthesis",
+      url: "/dashboard/profiler",
+      icon: <BrainCircuit className="w-4 h-4 text-indigo-500" />,
+      status: profile ? "Synthesized" : "Pending Intake",
+      isLocked: !isGoalStarted,
+    },
+    {
+      id: "sourcetrust",
+      number: "03",
+      name: "Librarian Board",
+      role: "Web Resource Discovery & RAG",
+      url: "/dashboard/sourcetrust",
+      icon: <ShieldCheck className="w-4 h-4 text-indigo-500" />,
+      status: resources.length > 0 ? `${resources.length} Discovered` : "Pending",
+      isLocked: !isGoalStarted,
+    },
+    {
+      id: "verifier",
+      number: "04",
+      name: "Source Verifier",
+      role: "SourceTrust Credibility Engine",
+      url: "/dashboard/verifier",
+      icon: <CheckCircle className="w-4 h-4 text-emerald-500" />,
+      status: resources.length > 0 ? `${resources.filter((r: any) => r.status === "INCLUDED").length} Verified` : "Pending",
+      isLocked: !isGoalStarted,
+    },
+    {
+      id: "curriculum",
+      number: "05",
+      name: "Curriculum Architect",
+      role: "Syllabus Phase & Module Builder",
+      url: "/dashboard/curriculum",
+      icon: <Compass className="w-4 h-4 text-violet-500" />,
+      status: phases.length > 0 ? `${phases.length} Phases Active` : "Locked",
+      isLocked: !isCurriculumReady && !isInterviewComplete,
+    },
+    {
+      id: "schedule",
+      number: "06",
+      name: "Schedule Planner",
+      role: "Calendar & Pace Allocation",
+      url: "/dashboard/schedule",
+      icon: <Calendar className="w-4 h-4 text-violet-500" />,
+      status: isCurriculumReady ? `${goal?.durationDays || 14} Days Mapped` : "Locked",
+      isLocked: !isCurriculumReady && !isInterviewComplete,
+    },
+    {
+      id: "classroom",
+      number: "07",
+      name: "AI Classroom (Teacher)",
+      role: "Interactive Lessons & Textbook",
+      url: "/dashboard/classroom",
+      icon: <BookOpen className="w-4 h-4 text-emerald-500" />,
+      status: isCurriculumReady ? "Classroom Active" : "Locked",
+      isLocked: !isCurriculumReady && !isInterviewComplete,
+    },
+    {
+      id: "visuals",
+      number: "08",
+      name: "Visual Explainer",
+      role: "Mermaid.js Concept Diagrams",
+      url: "/dashboard/visuals",
+      icon: <Layers className="w-4 h-4 text-primary" />,
+      status: isCurriculumReady ? "Blueprints Active" : "Locked",
+      isLocked: !isCurriculumReady && !isInterviewComplete,
+    },
+    {
+      id: "examiner",
+      number: "09",
+      name: "Examiner Agent",
+      role: "Knowledge Check MCQ Quizzes",
+      url: "/dashboard/examiner",
+      icon: <Award className="w-4 h-4 text-amber-500" />,
+      status: isCurriculumReady ? "Evaluations Ready" : "Locked",
+      isLocked: !isCurriculumReady && !isInterviewComplete,
+    },
+    {
+      id: "coach",
+      number: "10",
+      name: "Adaptive Coach",
+      role: "Path Tuning & Remediation",
+      url: "/dashboard/coach",
+      icon: <Zap className="w-4 h-4 text-primary" />,
+      status: isCurriculumReady ? "Path Tuner Active" : "Locked",
+      isLocked: !isCurriculumReady && !isInterviewComplete,
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -82,7 +196,7 @@ export function DashboardOverview({
             {goal?.goalText ? `Active Target: ${goal.goalText}` : "Welcome to Your AI Academy Workspace"}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Track your multi-project learning progress, attempt knowledge check quizzes, and switch between active workspaces.
+            Track your 10-agent autonomous learning pipeline, jump between dedicated workspace pages, and monitor real-time graph updates.
           </p>
         </div>
         <div className="flex gap-2">
@@ -90,27 +204,27 @@ export function DashboardOverview({
             <Plus className="mr-1.5 h-4 w-4" /> Start New Project
           </Button>
           <Button onClick={() => router.push("/dashboard/projects")} variant="outline">
-            <FolderKanban className="mr-1.5 h-4 w-4" /> All Projects
+            <FolderKanban className="mr-1.5 h-4 w-4" /> All Workspaces
           </Button>
         </div>
       </div>
 
-      {/* Analytics & Report Summary Blocks */}
+      {/* Overall User Analytics Summary Blocks */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center text-xs text-muted-foreground uppercase font-mono">
-              <span>Current Progress</span>
+              <span>Overall Progress</span>
               <BarChart3 className="h-4 w-4 text-primary" />
             </div>
             <CardTitle className="text-2xl font-extrabold text-primary mt-1">
-              {progressPercent}%
+              {analytics?.overallProgress || 0}%
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Progress value={progressPercent} className="h-2" />
+            <Progress value={analytics?.overallProgress || 0} className="h-2" />
             <p className="text-[11px] text-muted-foreground font-mono">
-              {completedLessons} of {totalLessons} lessons completed
+              {analytics?.completedLessons || 0} of {analytics?.totalLessons || 0} lessons completed overall
             </p>
           </CardContent>
         </Card>
@@ -118,48 +232,114 @@ export function DashboardOverview({
         <Card>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center text-xs text-muted-foreground uppercase font-mono">
-              <span>Timeline</span>
-              <Calendar className="h-4 w-4 text-indigo-500" />
+              <span>Total Workspaces</span>
+              <FolderKanban className="h-4 w-4 text-indigo-500" />
             </div>
             <CardTitle className="text-2xl font-extrabold text-card-foreground mt-1">
-              {goal?.durationDays || 7} <span className="text-xs font-normal text-muted-foreground">Days</span>
+              {analytics?.totalProjects || 0} <span className="text-xs font-normal text-muted-foreground">Projects</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-[11px] text-muted-foreground">Autonomous pace</p>
+            <p className="text-[11px] text-muted-foreground">User created goals</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center text-xs text-muted-foreground uppercase font-mono">
-              <span>Verified Sources</span>
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span>Quiz Accuracy</span>
+              <Award className="h-4 w-4 text-amber-500" />
             </div>
             <CardTitle className="text-2xl font-extrabold text-card-foreground mt-1">
-              {includedResourcesCount}{" "}
-              <span className="text-xs font-normal text-muted-foreground">Included</span>
+              {analytics?.quizPassRate || 0}%
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-[11px] text-muted-foreground">SourceTrust Board verified</p>
+            <p className="text-[11px] text-muted-foreground">
+              {analytics?.passedAttempts || 0} of {analytics?.totalAttempts || 0} evaluations passed
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center text-xs text-muted-foreground uppercase font-mono">
-              <span>Learning Streak</span>
-              <Zap className="h-4 w-4 text-amber-500" />
+              <span>10-Agent Pipeline</span>
+              <Zap className="h-4 w-4 text-emerald-500" />
             </div>
             <CardTitle className="text-2xl font-extrabold text-card-foreground mt-1">
-              Active
+              Active Graph
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-[11px] text-muted-foreground">Agentic Coach tracking</p>
+            <p className="text-[11px] text-muted-foreground font-mono">Sequential state gating active</p>
           </CardContent>
         </Card>
+      </div>
+
+      {/* ── Autonomous 10-Agent Workspaces Pipeline Matrix ────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-card-foreground flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" /> Autonomous 10-Agent Pipeline Matrix
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Track the state of all 10 specialized agent workspaces in your learning graph. Select an active agent page to jump into its environment.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {agentMatrix.map((agent) => (
+            <Card
+              key={agent.id}
+              className={`flex flex-col justify-between transition-all ${
+                agent.isLocked
+                  ? "opacity-60 bg-muted/20 border-border"
+                  : "hover:border-primary/50"
+              }`}
+            >
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-[9px] font-mono uppercase">
+                    AGENT {agent.number}
+                  </Badge>
+                  <Badge
+                    variant={agent.isLocked ? "outline" : "secondary"}
+                    className="text-[9px] font-mono"
+                  >
+                    {agent.isLocked ? (
+                      <span className="flex items-center gap-1 text-muted-foreground">
+                        <Lock className="w-2.5 h-2.5" /> Locked
+                      </span>
+                    ) : (
+                      <span className="text-emerald-500">{agent.status}</span>
+                    )}
+                  </Badge>
+                </div>
+                <CardTitle className="text-xs font-bold text-card-foreground flex items-center gap-1.5 mt-2">
+                  {agent.icon} {agent.name}
+                </CardTitle>
+                <CardDescription className="text-[11px] line-clamp-2">
+                  {agent.role}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <Button
+                  onClick={() => router.push(agent.url)}
+                  disabled={agent.isLocked}
+                  size="sm"
+                  variant={agent.isLocked ? "outline" : "default"}
+                  className="w-full text-[11px] justify-between h-8"
+                >
+                  <span>{agent.isLocked ? "Locked" : "Open Workspace"}</span>
+                  {agent.isLocked ? <Lock className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Main Layout Grid */}
@@ -173,8 +353,8 @@ export function DashboardOverview({
                   <Badge variant="default" className="text-[10px]">
                     ACTIVE MODULE: {currentModuleTitle}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    Lesson {completedLessons + 1}
+                  <span className="text-[10px] text-muted-foreground font-mono uppercase">
+                    Active Lesson
                   </span>
                 </div>
                 <CardTitle className="text-lg font-bold text-card-foreground mt-2">
@@ -249,30 +429,50 @@ export function DashboardOverview({
                 Autonomous AI Education Stack
               </CardTitle>
               <CardDescription className="text-xs">
-                9 specialized agents working in harmony to orchestrate your personalized learning.
+                10 specialized agents working in harmony to orchestrate your personalized learning graph.
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-3 text-xs text-muted-foreground">
+            <CardContent className="space-y-2.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-2 text-card-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>Counselor & Intake Alignment</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>01: Counselor Intake Alignment</span>
               </div>
               <div className="flex items-center gap-2 text-card-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>Curriculum Architect Syllabi</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>02: Profiler Skill Baseline</span>
               </div>
               <div className="flex items-center gap-2 text-card-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>SourceTrust Web Scraping & RAG</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>03: Librarian Web Discovery</span>
               </div>
               <div className="flex items-center gap-2 text-card-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>Teacher Textbook & Diagram Generation</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>04: Source Verifier Heuristics</span>
               </div>
               <div className="flex items-center gap-2 text-card-foreground">
-                <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                <span>Examiner Quiz & Adaptive Remediation</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>05: Curriculum Architect Syllabi</span>
+              </div>
+              <div className="flex items-center gap-2 text-card-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>06: Schedule Planner Calendar</span>
+              </div>
+              <div className="flex items-center gap-2 text-card-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>07: Teacher Textbook Generation</span>
+              </div>
+              <div className="flex items-center gap-2 text-card-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>08: Visual Explainer Blueprints</span>
+              </div>
+              <div className="flex items-center gap-2 text-card-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>09: Examiner MCQ Evaluations</span>
+              </div>
+              <div className="flex items-center gap-2 text-card-foreground">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>10: Adaptive Remediation Tuning</span>
               </div>
             </CardContent>
 
@@ -291,4 +491,3 @@ export function DashboardOverview({
     </div>
   )
 }
-

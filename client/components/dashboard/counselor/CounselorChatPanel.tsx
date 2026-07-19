@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, BrainCircuit, Loader2, RotateCcw } from "lucide-react";
+import { ArrowRight, BrainCircuit, Loader2, RotateCcw, AlertCircle, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,9 @@ interface CounselorChatPanelProps {
   quickReplies: string[];
   stageLabel: string;
   isSubmitting: boolean;
+  errorMessage?: string | null;
   onSubmitAnswer: (answer: string) => void;
+  onRetry?: () => void;
   onReset: () => void;
 }
 
@@ -23,7 +25,9 @@ export function CounselorChatPanel({
   quickReplies,
   stageLabel,
   isSubmitting,
+  errorMessage,
   onSubmitAnswer,
+  onRetry,
   onReset,
 }: CounselorChatPanelProps) {
   const [answer, setAnswer] = useState("");
@@ -39,7 +43,7 @@ export function CounselorChatPanel({
     <Card className="relative">
       <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-border pb-3">
         <div>
-          <Badge className="text-[9px] ">{stageLabel}</Badge>
+          <Badge className="text-[9px]">{stageLabel}</Badge>
           <CardTitle className="mt-2 flex items-center gap-2 text-base">
             <BrainCircuit className="h-4 w-4" />
             Counselor Interview
@@ -65,15 +69,37 @@ export function CounselorChatPanel({
             >
               <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-primary">
                 {message.role === "assistant" ? "Counselor Agent" : "You"}
-                {/* <Badge>{message.timestamp}</Badge> */}
               </div>
               <p className="text-sm leading-relaxed">{message.content}</p>
             </div>
           ))}
+
           {isSubmitting && (
-            <div className="mr-8 rounded-lg border bg-primary p-3 text-sm text-slate-400">
-              <Loader2 className="mr-2 inline h-4 w-4 animate-spin text-violet-400" />
-              Thinking through your intake signals...
+            <div className="mr-8 rounded-lg border bg-primary/10 border-primary/20 p-3 text-sm text-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary shrink-0" />
+              <span>Thinking through your intake signals...</span>
+            </div>
+          )}
+
+          {/* Inline Error Banner with Retry Button */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-lg border border-destructive/50 bg-destructive/10 text-destructive text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="flex-1 font-mono leading-relaxed">{errorMessage}</div>
+              </div>
+              {onRetry && (
+                <div className="flex justify-end pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onRetry}
+                    className="border-destructive/40 text-destructive hover:bg-destructive/10 text-xs h-7"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1.5" /> Retry Submission
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -85,7 +111,7 @@ export function CounselorChatPanel({
                 key={reply}
                 type="button"
                 onClick={() => setAnswer(reply)}
-                className="rounded-md border border-primary/40 bg-primary-30 px-3 py-1.5 text-xs  transition-colors hover:border-primary/50 hover:text-primary"
+                className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs transition-colors hover:border-primary/50 hover:text-primary"
               >
                 {reply}
               </button>

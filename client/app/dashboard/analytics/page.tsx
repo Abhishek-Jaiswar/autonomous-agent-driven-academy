@@ -15,6 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
+import { useGetUserAnalyticsQuery } from "@/store/api/auth/auth-api";
+
 interface UserAnalytics {
   totalProjects: number;
   totalLessons: number;
@@ -27,32 +29,8 @@ interface UserAnalytics {
 }
 
 export default function AnalyticsPage() {
-  const [analytics, setAnalytics] = useState<UserAnalytics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  async function fetchAnalytics() {
-    setIsLoading(true);
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("astralearn_token") : "";
-      const res = await fetch("http://localhost:5000/curriculum/analytics", {
-        headers: {
-          Authorization: `Bearer ${token || ""}`,
-        },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setAnalytics(data.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch analytics:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const { data: analyticsData, isLoading } = useGetUserAnalyticsQuery();
+  const analytics: UserAnalytics | null = analyticsData?.data || null;
 
   if (isLoading) {
     return (

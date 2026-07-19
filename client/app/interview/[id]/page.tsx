@@ -10,12 +10,12 @@ export default async function InterviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const serverUrl = process.env.SERVER_URL ?? "http://localhost:3000";
+  const serverUrl = process.env.SERVER_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
   let interview: InterviewState;
 
   try {
-    const res = await fetch(`${serverUrl}/interview/${id}`, {
+    const res = await fetch(`${serverUrl}/curriculum/interview/${id}`, {
       cache: "no-store",
     });
 
