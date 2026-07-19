@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignupMutation } from "@/store/api/auth/auth-api";
-import { useAppDispatch } from "@/store/hooks";
+import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/slices/authSlice";
 
 export default function SignupPage() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const dispatch = useDispatch();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
